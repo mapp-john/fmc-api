@@ -49,7 +49,7 @@ def AccessToken(server,headers,username,password):
 #
 #
 # Define Blank URL Get Script as Function
-def BlankGet():
+def BlankGet(server,headers,username,password):
     print ('''
 ***********************************************************************************************
 *                             Blank URL GET Script                                            *
@@ -57,95 +57,50 @@ def BlankGet():
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. HTTPS FQDN for FMC server (https://hostname.domain.com)                                 *
+*  1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})   *
 *                                                                                             *
-*  2. API Username                                                                            *
+*  2. Expand output to show details of each object *(Not Supported with {object_UUID} GET)    *
 *                                                                                             *
-*  3. API Password                                                                            *
+*  3. Limit output to a specific number of objects *(Not Supported with {object_UUID} GET)    *
 *                                                                                             *
-*  4. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})   *
-*                                                                                             *
-*  5. Expand output to show details of each object *(Not Supported with {object_UUID} GET)    *
-*                                                                                             *
-*  6. Limit output to a specific number of objects *(Not Supported with {object_UUID} GET)    *
-*                                                                                             *
-*  7. Save output to JSON file                                                                *
+*  4. Save output to JSON file                                                                *
 *                                                                                             *
 *                                                                                             *
 ***********************************************************************************************
 ''')
 
-
-    # Request FMC server FQDN
-    server = raw_input('Please Enter FMC fqdn: ').lower()
-    
-    # Validate FQDN 
-    if server[-1] == '/':
-        server = server[:-1]
-    
-    #if server[:8] not in (['https://']):
-    #    print ('HTTPS FQDN INVALID. Exiting...')
-    #    sys.exit()
-    #else:
-    #    server = server
-    
-    # Perform Test Connection To FQDN
-    s = socket.socket()
-    print(f'Attempting to connect to {server} on port 443')
-    try:
-        s.connect((server, 443))
-        print(f'Connecton successful to {server} on port 443')
-    except socket.error, e:
-        print(f'Connection to {server} on port 443 failed: {e}')
-        sys.exit()
-    
-    # Adding HTTPS to Server for URL
-    server = f'https://{server}'
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    
-    # Request Username and Password without showing password in clear text
-    username = raw_input('Please Enter API Username: ')
-    password = getpass.getpass('Please Enter API Password: ')
-    
     # Get API Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
-    
-   ## While Loop For Multiple API Calls
-   ##while True: 
-     
+
     # Request API URI Path
-    api_path = raw_input('Please Enter URI: ').lower()
-    
+    api_path = input('Please Enter URI: ').lower()
+
     # Clean URI
     if (api_path[-1] == '/'):
         api_path = api_path[:-1]
-    
+
     # Check for GETBYID Operation in URI
     getbyid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', api_path[-36:])
-    
+
     # Set URL
     url = f'{server}{api_path}'
 
     # Ask to Expand and/or assign output Limit
     if getbyid == None:
-        expand = raw_input('Would You Like To Expand Output Entries? [y/N]: ').lower()
-        limit = raw_input('Would You Like To Limit Output Entries? [Number or "No"]: ').lower()
-    
+        expand = input('Would You Like To Expand Output Entries? [y/N]: ').lower()
+        limit = input('Would You Like To Limit Output Entries? [Number or "No"]: ').lower()
+
         if limit not in (['no','n','']) and expand in (['yes','ye','y']):
             url = f'{server}{api_path}?expanded=true&limit={limit}'
-    
         elif limit not in (['no','n','']) and expand in (['no','n','']):
             url = f'{server}{api_path}?limit={limit}'
-    
         elif limit in (['no','n','']) and expand in (['yes','ye','y']):
             url = f'{server}{api_path}?expanded=true'
-    
     if url[-1] == '/':
         url = url[:-1]
-    
+
     # Perform API GET call
     print('Performing API GET to: {url}')
-    
     try:
         # REST call with SSL verification turned off:
         r = requests.get(url, headers=headers, verify=False)
@@ -154,9 +109,9 @@ def BlankGet():
         if (status_code == 200):
             print('GET successful...')
             # Ask if output should be saved to File
-            save = raw_input('Would You Like To Save The Output To File? [y/N]: ').lower()
+            save = input('Would You Like To Save The Output To File? [y/N]: ').lower()
             if save in (['yes','ye','y']):
-                filename = raw_input('Please Enter /full/file/path.json: ')
+                filename = input('Please Enter /full/file/path.json: ')
                 with open(filename, 'a') as OutFile:
                     json_resp = json.loads(resp)
                     OutFile.write(json.dumps(json.loads(resp),indent=4))
@@ -168,27 +123,16 @@ def BlankGet():
     except requests.exceptions.HTTPError as err:
         print(f'Error in connection --> {err}')
         print(json.dumps(json.loads(resp),indent=4))
-    
-    
     # End 
     finally:
         if r : r.close()
-    
-        # Ask to end the loop
-        #Loop = raw_input('*\n*\nWould You Like To Perform Another Get From Different URI? [y/N]').lower()
-        #if Loop not in (['yes','ye','y']):
-        #    break
-        #    if r : r.close()
-
-
-
 
 
 #
 #
 #
 # Define Network Object POST Script as Funtion
-def PostNetworkObject():
+def PostNetworkObject(server,headers,username,password):
     print ('''
 ***********************************************************************************************
 *                          Create Network Objects in bulk                                     *
@@ -196,80 +140,45 @@ def PostNetworkObject():
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*  1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networks/)                     *
 *                                                                                             *
-*  2. API Username                                                                            *
-*                                                                                             *
-*  3. API Password                                                                            *
-*                                                                                             *
-*  4. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networks/)                     *
-*                                                                                             *
-*  5. CSV Data Input file                                                                     *
+*  2. CSV Data Input file                                                                     *
 *          #CSV FORMAT - No Header Row: Column0 = ObjectName, Column1 = Address               *
 *                                                                                             *
-*                                                                                             *
-*  6. Output Log File to JSON file                                                            *
+*  3. Output Log File to JSON file                                                            *
 *                                                                                             *
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-
-
-    # Request FMC server FQDN
-    server = raw_input('Please Enter FMC fqdn: ').lower()
-    
-    # Validate FQDN 
-    if server[-1] == '/':
-        server = server[:-1]
-    
-    # Perform Test Connection To FQDN
-    s = socket.socket()
-    print(f'Attempting to connect to {server} on port 443')
-    try:
-        s.connect(server, 443)
-        print(f'Connecton successful to {server} on port 443')
-    except socket.error, e:
-        print(f'Connection to {server} on port 443 failed: {e}')
-        sys.exit()
-    
-    # Adding HTTPS to Server for URL
-    server = f'https://{server}'
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    
-    # Request Username and Password without showing password in clear text
-    username = raw_input('Please Enter API Username: ')
-    password = getpass.getpass('Please Enter API Password: ')
-    
     # Get API Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
     # Request API URI Path
-    api_path = raw_input('Please Enter URI: ').lower()
-    
+    api_path = input('Please Enter URI: ').lower()
+
     # Clean URI
     if (api_path[-1] == '/'):
         api_path = api_path[:-1]
-    
+
     # Request Input File
-    read_csv = raw_input('Please Enter Input File /full/file/path.csv: ')
+    read_csv = input('Please Enter Input File /full/file/path.csv: ')
     if read_csv == None:
-        print 'MUST PROVIDE INPUT FILE. Exiting...'
+        print('MUST PROVIDE INPUT FILE. Exiting...')
         sys.exit()
-    
+
     # Ask for output File
-    filename = raw_input('Please Enter JSON Output /Full/File/PATH.json: ')
+    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
     if filename == None:
-        print 'MUST PROVIDE OUTPUT FILE. Exiting...'
+        print('MUST PROVIDE OUTPUT FILE. Exiting...')
         sys.exit()
-    
+
     # Read csv file
     open_read_csv = open(read_csv, 'rb')
     my_csv_reader = csv.reader(open_read_csv, delimiter=',')
 
     # Combine Server and API Path
     url = f'{server}{api_path}'
-    
+
     # Clean URL
     if url[-1] == '/':
         url = url[:-1]
@@ -279,7 +188,6 @@ def PostNetworkObject():
         # Pull Object Name and Address from CSV
         ObjectName = row[0]
         Address = row[1] 
-    
         post_data = {
         'name': ObjectName,
         'type': 'Network',
@@ -303,7 +211,6 @@ def PostNetworkObject():
                 print ('Error occurred in POST --> {resp}')
         except requests.exceptions.HTTPError as err:
             print ('Error in connection --> {err}')
-    
         finally:
             if r: r.close()
 
@@ -311,7 +218,7 @@ def PostNetworkObject():
 #
 #
 # Define Network Object-Group POST Script as Funtion
-def PostNetworkObjectGroup():
+def PostNetworkObjectGroup(server,headers,username,password):
     print ('''
 ***********************************************************************************************
 *                Create Network Objects in bulk and add to new Object-Group                   *
@@ -319,85 +226,52 @@ def PostNetworkObjectGroup():
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*  1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)         *
 *                                                                                             *
-*  2. API Username                                                                            *
+*  2. TXT Data Input file (ASA "show run object-group" output)                                *
 *                                                                                             *
-*  3. API Password                                                                            *
-*                                                                                             *
-*  4. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)         *
-*                                                                                             *
-*  5. CSV Data Input file                                                                     *
-*                                                                                             *
-*  6. Output Log File to JSON file                                                            *
+*  3. Output Log File to JSON file                                                            *
 *                                                                                             *
 *                                                                                             *
 ***********************************************************************************************
 ''')
 
-    # Request FMC server FQDN
-    server = raw_input('Please Enter FMC fqdn: ').lower()
-    
-    # Validate FQDN 
-    if server[-1] == '/':
-        server = server[:-1]
-    
-    # Perform Test Connection To FQDN
-    s = socket.socket()
-    print(f'Attempting to connect to {server} on port 443')
-    try:
-        s.connect(server, 443)
-        print(f'Connecton successful to {server} on port 443')
-    except socket.error, e:
-        print(f'Connection to {server} on port 443 failed: {e}')
-        sys.exit()
-    
-    # Adding HTTPS to Server for URL
-    server = f'https://{server}'
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    
-    # Request Username and Password without showing password in clear text
-    username = raw_input('Please Enter API Username: ')
-    password = define_password()
-
     # Generate Access Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
     # Request API URI Path
-    API_UUID = raw_input('Please Enter FMC Domain UUID: ').lower()
+    API_UUID = input('Please Enter FMC Domain UUID: ').lower()
     uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID) 
     if uuid == None:
-        print 'Invalid UUID. Exiting...'
+        print('Invalid UUID. Exiting...')
         sys.exit()
-    
+
     # Request Input File
-    read_csv = raw_input('Please Enter Input File /full/file/path.csv: ')
-    if read_csv == None:
-        print 'MUST PROVIDE INPUT FILE. Exiting...'
+    read_file = input('Please Enter Input File /full/file/path.txt: ')
+    if read_file == None:
+        print('MUST PROVIDE INPUT FILE. Exiting...')
         sys.exit()
-    
+
     # Ask for output File
-    filename = raw_input('Please Enter JSON Output /Full/File/PATH.json: ')
+    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
     if filename == None:
-        print 'MUST PROVIDE OUTPUT FILE. Exiting...'
+        print('MUST PROVIDE OUTPUT FILE. Exiting...')
         sys.exit()
 
     # Open File to write 
     outfile = open(filename, 'wb')
 
     # Read csv file
-    open_read_csv = open(read_csv, 'rb')
-    my_csv_reader = csv.reader(open_read_csv, delimiter=',')
+    open_read_file = open(read_csv, 'r').readlines()
 
     # Define Counters
     NetOb_Counter = 0
     ObGr_Counter = 0
 
     # Create For Loop To Process Each Item In CSV
-    for row in my_csv_reader:
-
+    for row in open_read_file:
         # Find Object-Group Name
-        if row[0].__contains__('object-group network '):
+        if row[0].startswith('object-group network '):
             ObGr_NAME_Orig = row[0].strip('object-group network ')
             ObGr_NAME = ObGr_NAME_Orig
             # Create Base JSON data for Object-Group
@@ -409,7 +283,7 @@ def PostNetworkObjectGroup():
             # Read Object-Group JSON data for Editing
             ObGr_json = json.loads(ObGr_Data)
         # Convert Netmask to CIDR notation    
-        elif row[0].__contains__(' network-object '):
+        elif row[0].startswith(' network-object '):
             net = row[0].strip(' network-object ').replace(' ','/')
             # Define Network-Object Value
             Address = netaddr.IPNetwork(net).cidr
@@ -557,7 +431,6 @@ def PostNetworkObjectGroup():
                                 ObjectID = item['id']
                                 print('Found Network-Object, Processing...')
 
-
                         # Append Object-Group JSON with new entry for Network-Object
                         ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
                         outfile.write(json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n')
@@ -617,7 +490,7 @@ def PostNetworkObjectGroup():
                                 if r: r.close()
 
                     # Error Handling for Access Token Timeout
-                    elif item['description'].__contains__('Access token invalid'): 
+                    elif 'Access token invalid' in item['description']: 
                         print ('Access token invalid... Attempting to Renew Token...')
                         headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
@@ -856,7 +729,7 @@ def PostNetworkObjectGroup():
 #
 #
 # Define IPS/File Policy Put Script as Funtion
-def PutIntrusionFile():
+def PutIntrusionFile(server,headers,username,password):
     print ('''
 ***********************************************************************************************
 *                     Update IPS and/or File Policy for Access Rules                          *
@@ -864,108 +737,69 @@ def PutIntrusionFile():
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*  1. JSON Data Input file                                                                    *
 *                                                                                             *
-*  2. API Username                                                                            *
+*  2. Intrusion Policy (Yes/No)                                                               *
 *                                                                                             *
-*  3. API Password                                                                            *
+*  3. File Policy (Yes/No)                                                                    *
 *                                                                                             *
-*  4. JSON Data Input file                                                                    *
-*                                                                                             *
-*  5. Intrusion Policy (Yes/No)                                                               *
-*                                                                                             *
-*  6. File Policy (Yes/No)                                                                    *
-*                                                                                             *
-*  7. Output Log File to JSON file                                                            *
-*                                                                                             *
+*  4. Output Log File to JSON file                                                            *
 *                                                                                             *
 ***********************************************************************************************
 ''')
 
-
-
-    # Request FMC server FQDN
-    server = raw_input('Please Enter FMC fqdn: ').lower()
-    
-    # Validate FQDN 
-    if server[-1] == '/':
-        server = server[:-1]
-    else:
-        server = server
-    
-    # Perform Test Connection To FQDN
-    s = socket.socket()
-    print(f'Attempting to connect to {server} on port 443')
-    try:
-        s.connect(server, 443)
-        print(f'Connecton successful to {server} on port 443')
-    except socket.error, e:
-        print(f'Connection to {server} on port 443 failed: {e}')
-        sys.exit()
-    
-    # Adding HTTPS to Server for URL
-    server = f'https://{server}'
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    
-    # Request Username and Password without showing password in clear text
-    username = raw_input('Please Enter API Username: ')
-    password = getpass.getpass('Please Enter API Password: ')
-    
     # Generate Access Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
- 
-    json_file = raw_input('Please Enter JSON Input /Full/File/Path.json: ')
-    
+
+    json_file = input('Please Enter JSON Input /Full/File/Path.json: ')
+
     if json_file == None:
-        print 'MUST PROVIDE INPUT FILE. Exiting...'
+        print('MUST PROVIDE INPUT FILE. Exiting...')
         sys.exit()
-    
+
     call_data = json.load(open(json_file))
-    
-    IPS = raw_input('Would You Like To Assign Intrusion Policy To Rules? [y/N]: ').lower()
-    
+
+    IPS = input('Would You Like To Assign Intrusion Policy To Rules? [y/N]: ').lower()
+
     if IPS in (['yes','ye','y']):
         # Request UUID for Intrusion Policy
-        IPSUUID = raw_input('Please enter Intrusion Policy UUID: ').lower()
+        IPSUUID = input('Please enter Intrusion Policy UUID: ').lower()
         # Verify UUID with RegEx match
         uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', IPSUUID)
         if uuid == None:
-            print 'Invalid UUID. Exiting...'
+            print('Invalid UUID. Exiting...')
             sys.exit()
         # Request Intrusion Policy Name
-        IPSNAME = raw_input('Please enter Intrusion Policy Name exactly as seen in JSON: ')
-        
-        
+        IPSNAME = input('Please enter Intrusion Policy Name exactly as seen in JSON: ')
+
         # Request UUID for Variable Set
-        VSETUUID = raw_input('Please enter Varable Set UUID: ').lower()
+        VSETUUID = input('Please enter Varable Set UUID: ').lower()
         # Verify UUID with RegEx match
         uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', VSETUUID)
         if uuid == None:
-            print 'Invalid UUID. Exiting...'
+            print('Invalid UUID. Exiting...')
             sys.exit()
         # Request Variable Set Name
-        VSETNAME = raw_input('Please enter Variable Set Name exactly as seen in JSON: ')
-    
-    
-    FILEPOLICY = raw_input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower()
-    
+        VSETNAME = input('Please enter Variable Set Name exactly as seen in JSON: ')
+
+
+    FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower()
+
     if FILEPOLICY in (['yes','ye','y']):
         # Request UUID for File Policy
-        FILEUUID = raw_input('Please enter File Policy UUID: ').lower()
+        FILEUUID = input('Please enter File Policy UUID: ').lower()
         # Verify UUID with RegEx match
         uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', FILEUUID)
         if uuid == None:
-            print 'Invalid UUID. Exiting...'
+            print('Invalid UUID. Exiting...')
             sys.exit()
         # Request File Policy Name
-        FILENAME = raw_input('Please enter File Policy Name exactly as seen in JSON: ')
-    
-    
-    
+        FILENAME = input('Please enter File Policy Name exactly as seen in JSON: ')
+
     # Ask for output File
-    filename = raw_input('Please Enter JSON Output /Full/File/PATH.json: ')
+    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
     if filename == None:
-        print 'MUST PROVIDE OUTPUT FILE. Exiting...'
+        print('MUST PROVIDE OUTPUT FILE. Exiting...')
         sys.exit()
     # For Loop to parse data from raw JSON
     for item in call_data['items']:
@@ -977,45 +811,40 @@ def PutIntrusionFile():
                 item ['ipsPolicy']['id'] = IPSUUID
                 item ['ipsPolicy']['name'] = IPSNAME
                 item ['ipsPolicy']['type'] = 'IntrusionPolicy'
-    
                 # Create VariableSet
                 item ['variableSet'] = {}
                 # Assign Values
                 item ['variableSet']['id'] = VSETUUID
                 item ['variableSet']['name'] = VSETNAME
                 item ['variableSet']['type'] = 'VariableSet'
-    
             if FILEPOLICY in (['yes','ye','y']):
-    
                 # Create FilePolicy
                 item ['filePolicy'] = {}
                 # Assign Values
                 item ['filePolicy']['id'] = FILEUUID
                 item ['filePolicy']['name'] = FILENAME
                 item ['filePolicy']['type'] = 'FilePolicy'
-    
+
             # Pull URL from item details
             url = item['links']['self']
-    
+
             # Delete Unprocessable items
             del item['links']
             del item['metadata']
-    
+
             # Create Comment List if not in item, to be able to delete
             item ['commentHistoryList'] = {}
             del item['commentHistoryList']
-    
-    
+
             # Try API PUT for the item processed using the URL taken from item
             put_data = item
             try:
                  # REST call with SSL verification turned off:
                  r = requests.put(url, data=json.dumps(put_data), headers=headers, verify=False)
-                 print 'Performing API PUT to: ' + url
+                 print(f'Performing API PUT to: {url}')
                  status_code = r.status_code
                  resp = r.text
                  if (status_code == 200):
-    
                      print('Items Processing... View Output File For Full Change Log...')
                      with open(filename, 'a') as OutFile:
                          json_resp = json.loads(resp)
@@ -1031,19 +860,62 @@ def PutIntrusionFile():
             # End
             finally:
                 if r: r.close()
-    sys.stdout.close()
-     
 
-
-
+#
+#
+#
+# Initial input request
 print ('''
 ***********************************************************************************************
 *                                                                                             *
 *                   Cisco FMC v6 API Tools (Writte for Python 3.6+)                           *
 *                                                                                             *
 ***********************************************************************************************
-***********************************************************************************************
 *                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*                                                                                             *
+*  2. API Username                                                                            *
+*                                                                                             *
+*  3. API Password                                                                            *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+# Request FMC server FQDN
+server = input('Please Enter FMC fqdn: ').lower()
+
+# Validate FQDN 
+if server[-1] == '/':
+    server = server[:-1]
+
+# Perform Test Connection To FQDN
+s = socket.socket()
+print(f'Attempting to connect to {server} on port 443')
+try:
+    s.connect((server, 443))
+    print(f'Connecton successful to {server} on port 443')
+except socket.error as e:
+    print(f'Connection to {server} on port 443 failed: {e}')
+    sys.exit()
+
+# Adding HTTPS to Server for URL
+server = f'https://{server}'
+headers = {'Content-Type': 'application/json','Accept': 'application/json'}
+
+# Request Username and Password without showing password in clear text
+username = input('Please Enter API Username: ')
+password = define_password()
+
+#
+#
+#
+# Run script until user cancels
+run = True
+while run:
+    print ('''
+***********************************************************************************************
 *                                                                                             *
 * TOOLS AVAILABLE:                                                                            *
 *                                                                                             *
@@ -1055,21 +927,30 @@ print ('''
 *                                                                                             *
 *  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
 *                                                                                             *
-*                                                                                             *
-*                                                                                             *
 ***********************************************************************************************
 ''')
 
-script = raw_input('Please Select Script: ')
-if script == '1':
-    BlankGet()
-elif script == '2':
-    PostNetworkObject()
-elif script == '3':
-    PostNetworkObjectGroup()
-elif script == '4':
-    PutIntrusionFile()    
-else:
-    print ('INVALID ENTRY... EXITING...')
+    Script = False
+    while not Script:
+        script = input('Please Select Script: ')
+        if script == '1':
+            Script = True
+            BlankGet(server,headers,username,password)
+        elif script == '2':
+            Script = True
+            PostNetworkObject(server,headers,username,password)
+        elif script == '3':
+            Script = True
+            PostNetworkObjectGroup(server,headers,username,password)
+        elif script == '4':
+            Script = True
+            PutIntrusionFile(server,headers,username,password)
+        else:
+            print('INVALID ENTRY... ')
 
+    # Ask to end the loop
+    Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
+    if Loop not in (['yes','ye','y']):
+        if r : r.close()
+        run = False
 
