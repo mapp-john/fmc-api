@@ -160,21 +160,25 @@ def PostNetworkObject(server,headers,username,password):
     if (api_path[-1] == '/'):
         api_path = api_path[:-1]
 
-    # Request Input File
-    read_csv = input('Please Enter Input File /full/file/path.csv: ')
-    if read_csv == None:
-        print('MUST PROVIDE INPUT FILE. Exiting...')
-        sys.exit()
+    Test = False
+    while not Test:
+        # Request Input File
+        read_csv = input('Please Enter Input File /full/file/path.csv: ')
+        if os.path.isfile(read_csv):
+            # Read csv file
+            open_read_csv = open(read_csv, 'rb')
+            my_csv_reader = csv.reader(open_read_csv, delimiter=',')
+            Test = True
+        print('MUST PROVIDE INPUT FILE...')
 
-    # Ask for output File
-    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
-    if filename == None:
-        print('MUST PROVIDE OUTPUT FILE. Exiting...')
-        sys.exit()
-
-    # Read csv file
-    open_read_csv = open(read_csv, 'rb')
-    my_csv_reader = csv.reader(open_read_csv, delimiter=',')
+    Test = False
+    while not Test:
+        # Request Output File
+        filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
+        if os.path.isfile(filename):
+            outfile = open(filename, 'a') 
+            Test = True
+        print('MUST PROVIDE OUTPUT FILE...')
 
     # Combine Server and API Path
     url = f'{server}{api_path}'
@@ -203,9 +207,8 @@ def PostNetworkObject(server,headers,username,password):
             print(f'Status code is: {status_code}')
             if status_code == 201 or status_code == 202:
                 print('Items Processing... View Output File For Full Change Log...')
-                with open(filename, 'a') as OutFile:
-                    json_resp = json.loads(resp)
-                    OutFile.write(json.dumps(json.loads(resp),indent=4))
+                json_resp = json.loads(resp)
+                outfile.write(json.dumps(json.loads(resp),indent=4))
             else :
                 r.raise_for_status()
                 print ('Error occurred in POST --> {resp}')
@@ -239,30 +242,33 @@ def PostNetworkObjectGroup(server,headers,username,password):
     # Generate Access Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
-    # Request API URI Path
-    API_UUID = input('Please Enter FMC Domain UUID: ').lower()
-    uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID) 
-    if uuid == None:
-        print('Invalid UUID. Exiting...')
-        sys.exit()
+    Test = False
+    while not Test:
+        # Request API URI Path
+        API_UUID = input('Please Enter FMC Domain UUID: ').lower()
+        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
+            Test=True
+        print('Invalid UUID...')
 
-    # Request Input File
-    read_file = input('Please Enter Input File /full/file/path.txt: ')
-    if read_file == None:
-        print('MUST PROVIDE INPUT FILE. Exiting...')
-        sys.exit()
+    Test = False
+    while not Test:
+        # Request Input File
+        read_file = input('Please Enter Input File /full/file/path.txt: ')
+        if os.path.isfile(read_file):
+            # Read csv file
+            open_read_file = open(read_csv, 'r').readlines()
+            Test = True
+        print('MUST PROVIDE INPUT FILE...')
 
-    # Ask for output File
-    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
-    if filename == None:
-        print('MUST PROVIDE OUTPUT FILE. Exiting...')
-        sys.exit()
-
-    # Open File to write 
-    outfile = open(filename, 'wb')
-
-    # Read csv file
-    open_read_file = open(read_csv, 'r').readlines()
+    Test = False
+    while not Test:
+        # Ask for output File
+        filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
+        if os.path.isfile(filename):
+            # Open File to write 
+            outfile = open(filename, 'wb')
+            Test = True
+        print('MUST PROVIDE OUTPUT FILE...')
 
     # Define Counters
     NetOb_Counter = 0
@@ -751,56 +757,64 @@ def PutIntrusionFile(server,headers,username,password):
     # Generate Access Token
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
-    json_file = input('Please Enter JSON Input /Full/File/Path.json: ')
-
-    if json_file == None:
-        print('MUST PROVIDE INPUT FILE. Exiting...')
-        sys.exit()
-
-    call_data = json.load(open(json_file))
+    Test = False
+    while not Test:
+        # Ask for output File
+        json_file = input('Please Enter JSON Input /Full/File/Path.json: ')
+        if os.path.isfile(json_file):
+            # Open File to write 
+            call_data = json.load(open(json_file))
+            Test = True
+        print('MUST PROVIDE INPUT FILE...')
 
     IPS = input('Would You Like To Assign Intrusion Policy To Rules? [y/N]: ').lower()
 
     if IPS in (['yes','ye','y']):
-        # Request UUID for Intrusion Policy
-        IPSUUID = input('Please enter Intrusion Policy UUID: ').lower()
-        # Verify UUID with RegEx match
-        uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', IPSUUID)
-        if uuid == None:
-            print('Invalid UUID. Exiting...')
-            sys.exit()
+        Test = False
+        while not Test:
+            # Request UUID for Intrusion Policy
+            IPSUUID = input('Please enter Intrusion Policy UUID: ').lower()
+            # Verify UUID with RegEx match
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', IPSUUID):
+                Test = True
+            print('Invalid UUID....')
         # Request Intrusion Policy Name
         IPSNAME = input('Please enter Intrusion Policy Name exactly as seen in JSON: ')
 
-        # Request UUID for Variable Set
-        VSETUUID = input('Please enter Varable Set UUID: ').lower()
-        # Verify UUID with RegEx match
-        uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', VSETUUID)
-        if uuid == None:
-            print('Invalid UUID. Exiting...')
-            sys.exit()
+        Test = False
+        while not Test:
+            # Request UUID for Variable Set
+            VSETUUID = input('Please enter Varable Set UUID: ').lower()
+            # Verify UUID with RegEx match
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', VSETUUID):
+                Test = True
+            print('Invalid UUID....')
         # Request Variable Set Name
         VSETNAME = input('Please enter Variable Set Name exactly as seen in JSON: ')
-
 
     FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower()
 
     if FILEPOLICY in (['yes','ye','y']):
-        # Request UUID for File Policy
-        FILEUUID = input('Please enter File Policy UUID: ').lower()
-        # Verify UUID with RegEx match
-        uuid = re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', FILEUUID)
-        if uuid == None:
+        Test = False
+        while not Test:
+            # Request UUID for File Policy
+            FILEUUID = input('Please enter File Policy UUID: ').lower()
+            # Verify UUID with RegEx match
+            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', FILEUUID):
+                Test = True
             print('Invalid UUID. Exiting...')
-            sys.exit()
         # Request File Policy Name
         FILENAME = input('Please enter File Policy Name exactly as seen in JSON: ')
 
-    # Ask for output File
-    filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
-    if filename == None:
+    Test = False
+    while not Test:
+        # Ask for output File
+        filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
+        if os.path.isfile(json_file):
+            # Open File to write 
+            Test = True
         print('MUST PROVIDE OUTPUT FILE. Exiting...')
-        sys.exit()
+
     # For Loop to parse data from raw JSON
     for item in call_data['items']:
         if item ['action'] == 'ALLOW':
@@ -851,8 +865,8 @@ def PutIntrusionFile(server,headers,username,password):
                          OutFile.write(json.dumps(json.loads(resp),indent=4))
                  else:
                      r.raise_for_status()
-                     print('Status code:-->'+status_code)
-                     print('Error occurred in PUT --> '+resp)
+                     print(f'Status code:--> {status_code}')
+                     print(f'Error occurred in PUT --> {resp}')
             except requests.exceptions.HTTPError as err:
                 print (f'Error in connection --> {err}')
                 json_resp = json.loads(resp)
@@ -883,22 +897,25 @@ print ('''
 ***********************************************************************************************
 ''')
 
-# Request FMC server FQDN
-server = input('Please Enter FMC fqdn: ').lower()
+Test = False
+while not Test:
+    # Request FMC server FQDN
+    server = input('Please Enter FMC fqdn: ').lower()
 
-# Validate FQDN 
-if server[-1] == '/':
-    server = server[:-1]
+    # Validate FQDN 
+    if server[-1] == '/':
+        server = server[:-1]
 
-# Perform Test Connection To FQDN
-s = socket.socket()
-print(f'Attempting to connect to {server} on port 443')
-try:
-    s.connect((server, 443))
-    print(f'Connecton successful to {server} on port 443')
-except socket.error as e:
-    print(f'Connection to {server} on port 443 failed: {e}')
-    sys.exit()
+    # Perform Test Connection To FQDN
+    s = socket.socket()
+    print(f'Attempting to connect to {server} on port 443')
+    try:
+        s.connect((server, 443))
+        print(f'Connecton successful to {server} on port 443')
+        Test = True
+    except Exception as e:
+        print(f'Connection to {server} on port 443 failed: {e}')
+        sys.exit()
 
 # Adding HTTPS to Server for URL
 server = f'https://{server}'
