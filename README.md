@@ -8,7 +8,7 @@
 
 
 _____________________________________________________________________________________________
-**Blank URL GET Script**
+**Basic URL GET Script**
 
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})
