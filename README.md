@@ -1,4 +1,4 @@
-TOOLS AVAILABLE:
+**TOOLS AVAILABLE**
 1. Blank URL GET
 2. Create Network-Objects in bulk (POST)
 3. Create Network-Objects in bulk and add to New Object-Group (POST)
@@ -6,7 +6,7 @@ TOOLS AVAILABLE:
 
 
 _____________________________________________________________________________________________
-Blank URL GET Script:
+**Blank URL GET Script**
 
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})
@@ -16,7 +16,7 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-Create Network Objects in bulk
+**Create Network Objects in bulk**
 
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networks/)
@@ -25,7 +25,7 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-Create Network Objects in bulk and add to new Object-Group
+**Create Network Objects in bulk and add to new Object-Group**
 
 USER INPUT NEEDED:
 1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
@@ -34,7 +34,7 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-Update IPS and/or File Policy for Access Rules
+**Update IPS and/or File Policy for Access Rules**
 
 USER INPUT NEEDED:
 1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
