@@ -4,10 +4,11 @@ import re
 import sys
 import csv
 import json
-import requests
-import getpass
 import socket
+import random
 import netaddr
+import getpass
+import requests
 
 
 #
@@ -62,7 +63,7 @@ def BlankGet(server,headers,username,password):
 *                                                                                             *
 *  3. Limit output to a specific number of objects *(Not Supported with {object_UUID} GET)    *
 *                                                                                             *
-*  4. Save output to JSON file                                                                *
+*  4. Save output to file                                                                     *
 *                                                                                             *
 *                                                                                             *
 ***********************************************************************************************
@@ -111,7 +112,12 @@ def BlankGet(server,headers,username,password):
             # Ask if output should be saved to File
             save = input('Would You Like To Save The Output To File? [y/N]: ').lower()
             if save in (['yes','ye','y']):
-                filename = input('Please Enter /full/file/path.json: ')
+                # Random Generated JSON Output File
+                filename = ''
+                for i in range(6):
+                    filename += chr(random.randint(97,122))
+                filename += '.txt'
+                print(f'RANDOM LOG FILE CREATED... {filename}')
                 with open(filename, 'a') as OutFile:
                     json_resp = json.loads(resp)
                     OutFile.write(json.dumps(json.loads(resp),indent=4))
@@ -145,9 +151,6 @@ def PostNetworkObject(server,headers,username,password):
 *  2. CSV Data Input file                                                                     *
 *          #CSV FORMAT - No Header Row: Column0 = ObjectName, Column1 = Address               *
 *                                                                                             *
-*  3. Output Log File to JSON file                                                            *
-*                                                                                             *
-*                                                                                             *
 ***********************************************************************************************
 ''')
     print('Generating Access Token')
@@ -173,15 +176,12 @@ def PostNetworkObject(server,headers,username,password):
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    Test = False
-    while not Test:
-        # Request Output File
-        filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
-        if os.path.isfile(filename):
-            outfile = open(filename, 'a') 
-            Test = True
-        else:
-            print('MUST PROVIDE OUTPUT FILE...')
+    # Random Generated JSON Output File
+    filename = ''
+    for i in range(6):
+        filename += chr(random.randint(97,122))
+    filename += '.txt'
+    print(f'RANDOM LOG FILE CREATED... {filename}')
 
     # Combine Server and API Path
     url = f'{server}{api_path}'
@@ -236,9 +236,6 @@ def PostNetworkObjectGroup(server,headers,username,password):
 *                                                                                             *
 *  2. TXT Data Input file (ASA "show run object-group" output)                                *
 *                                                                                             *
-*  3. Output Log File to JSON file                                                            *
-*                                                                                             *
-*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -266,16 +263,12 @@ def PostNetworkObjectGroup(server,headers,username,password):
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    Test = False
-    while not Test:
-        # Ask for output File
-        filename = input('Please Enter JSON Output /Full/File/PATH.json: ')
-        if os.path.isfile(filename):
-            # Open File to write 
-            outfile = open(filename, 'wb')
-            Test = True
-        else:
-            print('MUST PROVIDE OUTPUT FILE...')
+    # Random Generated JSON Output File
+    filename = ''
+    for i in range(6):
+        filename += chr(random.randint(97,122))
+    filename += '.txt'
+    print(f'RANDOM LOG FILE CREATED... {filename}')
 
     # Define Counters
     NetOb_Counter = 0
@@ -757,8 +750,6 @@ def PutIntrusionFile(server,headers,username,password):
 *                                                                                             *
 *  4. File Policy (Yes/No)                                                                    *
 *                                                                                             *
-*  5. Output Log File                                                                         *
-*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -857,15 +848,12 @@ def PutIntrusionFile(server,headers,username,password):
         # Request File Policy Name
         FILENAME = input('Please enter File Policy Name exactly as seen in API: ')
 
-    Test = False
-    while not Test:
-        # Ask for output File
-        filename = input('Please Enter Output Log file /Full/File/PATH.txt: ')
-        if os.path.isfile(filename):
-            # Open File to write 
-            Test = True
-        else:
-            print('MUST PROVIDE OUTPUT FILE. Exiting...')
+    # Random Generated JSON Output File
+    filename = ''
+    for i in range(6):
+        filename += chr(random.randint(97,122))
+    filename += '.txt'
+    print(f'RANDOM LOG FILE CREATED... {filename}')
 
     # For Loop to parse data from raw JSON
     for item in ACP_DATA['items']:
@@ -911,7 +899,7 @@ def PutIntrusionFile(server,headers,username,password):
                  status_code = r.status_code
                  resp = r.text
                  if (status_code == 200):
-                     print('Items Processing... View Output File For Full Change Log...')
+                     print(f'Items Processing... View Output File For Full Change Log... {filename}')
                      with open(filename, 'a') as OutFile:
                          json_resp = json.loads(resp)
                          OutFile.write(json.dumps(json.loads(resp),indent=4))
@@ -976,14 +964,7 @@ headers = {'Content-Type': 'application/json','Accept': 'application/json'}
 # Request Username and Password without showing password in clear text
 username = input('Please Enter API Username: ')
 password = define_password()
-
-#
-#
-#
-# Run script until user cancels
-run = True
-while run:
-    print ('''
+print ('''
 ***********************************************************************************************
 *                                                                                             *
 * TOOLS AVAILABLE:                                                                            *
@@ -998,6 +979,13 @@ while run:
 *                                                                                             *
 ***********************************************************************************************
 ''')
+
+#
+#
+#
+# Run script until user cancels
+run = True
+while run:
 
     Script = False
     while not Script:
@@ -1018,6 +1006,21 @@ while run:
             print('INVALID ENTRY... ')
 
     # Ask to end the loop
+    print ('''
+***********************************************************************************************
+*                                                                                             *
+* TOOLS AVAILABLE:                                                                            *
+*                                                                                             *
+*  1. Basic URL GET                                                                           *
+*                                                                                             *
+*  2. Create Network-Objects in bulk (POST)                                                   *
+*                                                                                             *
+*  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
+*                                                                                             *
+*  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
+*                                                                                             *
+***********************************************************************************************
+''')
     Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
     if Loop not in (['yes','ye','y']):
         run = False
