@@ -48,10 +48,88 @@ def AccessToken(server,headers,username,password):
 #
 #
 #
+# Get Net Object UUID
+def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
+    # Create Get DATA JSON Dictionary to collect data from GET calls
+    GetDATA = {}
+    GetDATA['items'] = []
+    try:
+        # Collect Network Objects
+        url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?offset=0&limit=1000'
+        # REST call with SSL verification turned off
+        r = requests.get(url_get, headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        json_resp = r.json()
+        if status_code == 200:
+            # Loop for First Page of Items
+            for item in json_resp['items']:
+                # Append Items to New Dictionary
+                GetDATA['items'].append({'name': item['name'],'id': item['id']})
+            while json_resp['paging'].__contains__('next'):
+                url_get = json_resp['paging']['next'][0]
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    resp = r.text
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            GetDATA['items'].append({'name': item['name'],'id': item['id']})
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+                    outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
+        # Collect Host Objects
+        url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?offset=0&limit=1000'
+        # REST call with SSL verification turned off
+        r = requests.get(url_get, headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        json_resp = r.json()
+        if status_code == 200:
+            # Loop for First Page of Items
+            for item in json_resp['items']:
+                # Append Items to New Dictionary
+                GetDATA['items'].append({'name': item['name'],'id': item['id']})
+            while json_resp['paging'].__contains__('next'):
+                url_get = json_resp['paging']['next'][0]
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    resp = r.text
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            GetDATA['items'].append({'name': item['name'],'id': item['id']})
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+                    outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+        outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
+
+    for item in GetDATA['items']:
+        if item['name'] == ObjectName:
+            # Pull Object UUID from json_resp data
+            ObjectID = item['id']
+    return ObjectID
+#
+#
+#
 # Define Blank URL Get Script as Function
 def BlankGet(server,headers,username,password):
     print ('''
-***********************************************************************************************
+           ***********************************************************************************************
 *                             Basic URL GET Script                                            *
 *_____________________________________________________________________________________________*
 *                                                                                             *
@@ -269,6 +347,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
         filename += chr(random.randint(97,122))
     filename += '.txt'
     print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
+    outfile = open(filename,'w')
 
     # Define Counters
     NetOb_Counter = 0
@@ -384,55 +463,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
                         print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
                         # Perform GET to grab UUID for Network Object that already exists 
-                        #ObjectID = NetObGETUUID()
-
-                        # Create Get DATA JSON Dictionary to collect data from GET calls
-                        GetDATA = {}
-                        GetDATA['items'] = []
-                        GetDATA_JSON = json.loads(json.dumps(GetDATA))
-                        try:
-                            # REST call with SSL verification turned off
-                            url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?offset=0&limit=1000'
-                            r = requests.get(url_get, headers=headers, verify=False)
-                            status_code = r.status_code
-                            resp = r.text
-                            print(f'Status code is: {status_code}')
-                            json_resp = None
-                            json_resp = json.loads(resp)
-                            if status_code == 200:
-                                # Loop for First Page of Items
-                                for item in json_resp['items']:
-                                    # Append Items to New Dictionary
-                                    GetDATA_JSON['items'].append({'name': item['name'],'id': item['id']})
-                                while json_resp['paging'].__contains__('next'):
-                                    url_get = json_resp['paging']['next'][0]
-                                    try:
-                                        # REST call with SSL verification turned off
-                                        r = requests.get(url_get, headers=headers, verify=False)
-                                        status_code = r.status_code
-                                        resp = r.text
-                                        print(f'Status code is: {status_code}')
-                                        json_resp = None
-                                        json_resp = json.loads(resp)
-                                        if status_code == 200:
-                                            # Loop for First Page of Items
-                                            for item in json_resp['items']:
-                                                # Append Items to New Dictionary
-                                                GetDATA_JSON['items'].append({'name': item['name'],'id': item['id']})
-                                    except requests.exceptions.HTTPError as err:
-                                        print (f'Error in connection --> {err}')
-                                        outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-                                    finally:
-                                             if r: r.close()
-                        except requests.exceptions.HTTPError as err:
-                            print (f'Error in connection --> {err}')
-                            outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-
-                        for item in GetDATA_JSON['items']:
-                            if item['name'] == ObjectName:
-                                # Pull Object UUID from json_resp data
-                                ObjectID = item['id']
-                                print('Found Network-Object, Processing...')
+                        ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                         # Append Object-Group JSON with new entry for Network-Object
                         ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
@@ -460,8 +491,6 @@ def PostNetworkObjectGroup(server,headers,username,password):
                             try:
                                 # REST call with SSL verification turned off:
                                 r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                # REST call with SSL verification turned on:
-                                # r = requests.post(url, data=json.dumps(post_data), headers=headers, verify='/path/to/ssl_certificate')
                                 status_code = r.status_code
                                 resp = r.text
                                 json_resp = json.loads(resp)
@@ -578,62 +607,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
                                 if 'already exists' in item['description']:
                                     print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
-                                    # Perform GET to grab UUID for Network Object that already exists
-                                    #ObjectID = NetObGETUUID()
-
-                                    # Create Get DATA JSON Dictionary to collect data from GET calls
-                                    GetDATA = {}
-                                    GetDATA['items'] = []
-                                    GetDATA_JSON = json.loads(json.dumps(GetDATA))
-                                    try:
-                                        # REST call with SSL verification turned off
-                                        url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?offset=0&limit=1000'
-                                        r = requests.get(url_get, headers=headers, verify=False)
-                                        status_code = r.status_code
-                                        resp = r.text
-                                        print(f'Status code is: {status_code}')
-                                        json_resp = None
-                                        json_resp = json.loads(resp)
-                                        if status_code == 200:
-                                            # Loop for First Page of Items
-                                            for item in json_resp['items']:
-                                                # Append Items to New Dictionary
-                                                GetDATA_JSON['items'].append({'name': item['name'],'id': item['id']})
-                                            # While loop for next pages
-                                            while json_resp['paging'].__contains__('next'):
-                                                url_get = json_resp['paging']['next'][0]
-                                                try:
-                                                    # REST call with SSL verification turned off
-                                                    r = requests.get(url_get, headers=headers, verify=False)
-                                                    status_code = r.status_code
-                                                    resp = r.text
-                                                    print(f'Status code is: {status_code}')
-                                                    json_resp = None
-                                                    json_resp = json.loads(resp)
-                                                    if status_code == 200:
-                                                        # Loop for First Page of Items
-                                                        for item in json_resp['items']:
-                                                            # Append Items to New Dictionary
-                                                            GetDATA_JSON['items'].append({'name': item['name'],'id': item['id']})
-                                                except requests.exceptions.HTTPError as err:
-                                                    print(f'Error in connection --> {err}')
-                                                    outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-                                                finally:
-                                                         if r: r.close()
-                                    except requests.exceptions.HTTPError as err:
-                                        print (f'Error in connection --> {err}')
-                                        outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-                                    finally:
-                                        if r: r.close()
-
-
-                                    for item in GetDATA_JSON['items']:
-                                        if item['name'] == ObjectName:
-                                            # Pull Object UUID from json_resp data
-                                            ObjectID = item['id']
-                                            print('Found Network-Object, Processing...')
-
-
+                                    # Perform GET to grab UUID for Network Object that already exists 
+                                    ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                                     # Append Object-Group JSON with new entry for Network-Object
                                     ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
@@ -724,8 +699,6 @@ def PostNetworkObjectGroup(server,headers,username,password):
         print (f'Error in connection --> {err}')
         outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
 
-    finally:
-        if r: r.close()
     outfile.close()
 
 #
