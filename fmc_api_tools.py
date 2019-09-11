@@ -776,10 +776,10 @@ def PutIntrusionFile(server,headers,username,password):
             print('Invalid UUID...')
 
     # Create Get DATA JSON Dictionary to collect data from GET calls
-    print('Collecting Access-Policy...')
+    print('*\n*\nCOLLECTING ACCESS-POLICY...')
     try:
         # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{ACP_UUID}/accessrules?offset=0&limit=1&expanded=true'
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{ACP_UUID}/accessrules?offset=0&limit=1000&expanded=true'
         r = requests.get(url, headers=headers, verify=False)
         status_code = r.status_code
         print(f'Status code is: {status_code}')
