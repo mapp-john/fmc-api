@@ -33,7 +33,6 @@ def AccessToken(server,headers,username,password):
         # REST call with SSL verification turned off:
         r = requests.post(auth_url, headers=headers, auth=requests.auth.HTTPBasicAuth(username,password), verify=False)
         print(r.status_code)
-
         auth_headers = r.headers
         auth_token = auth_headers.get('X-auth-access-token', default=None)
         if auth_token == None:
@@ -42,7 +41,6 @@ def AccessToken(server,headers,username,password):
     except Exception as err:
         print ('Error in generating auth token --> {err}')
         sys.exit()
-
     return auth_token
 
 #
@@ -743,13 +741,17 @@ def PutIntrusionFile(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. JSON Data Input file                                                                    *
+*  1. FMC Domain UUID                                                                         *
+*           (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)                   *
 *                                                                                             *
-*  2. Intrusion Policy (Yes/No)                                                               *
+*  2. Access Policy UUID                                                                      *
+*           (/api/fmc_config/v1/domain/{domain_UUID}/policy/accesspolicies/{ACP_UUID})        *
 *                                                                                             *
-*  3. File Policy (Yes/No)                                                                    *
+*  3. Intrusion Policy (Yes/No)                                                               *
 *                                                                                             *
-*  4. Output Log File to JSON file                                                            *
+*  4. File Policy (Yes/No)                                                                    *
+*                                                                                             *
+*  5. Output Log File                                                                         *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -759,13 +761,52 @@ def PutIntrusionFile(server,headers,username,password):
 
     Test = False
     while not Test:
-        # Ask for output File
-        json_file = input('Please Enter JSON Input /Full/File/Path.json: ')
-        if os.path.isfile(json_file):
-            # Open File to write 
-            call_data = json.load(open(json_file))
-            Test = True
-        print('MUST PROVIDE INPUT FILE...')
+        # Request API URI Path
+        API_UUID = input('Please Enter FMC Domain UUID: ').lower()
+        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
+            Test=True
+        print('Invalid UUID...')
+
+    Test = False
+    while not Test:
+        # Request API URI Path
+        ACP_UUID = input('Please Enter FMC Domain UUID: ').lower()
+        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', ACP_UUID):
+            Test=True
+        print('Invalid UUID...')
+
+    # Create Get DATA JSON Dictionary to collect data from GET calls
+    try:
+        # REST call with SSL verification turned off
+        url = f'/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{ACP_UUID}/accessrules?offset=0&limit=1&expanded=true'
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        print(f'Status code is: {status_code}')
+        ACP_DATA = r.json()
+        if status_code == 200:
+            while json_resp['paging'].__contains__('next'):
+                url_get = json_resp['paging']['next'][0]
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            ACP_DATA['items'].append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+                    outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
+                finally:
+                         if r: r.close()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+        outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
+    finally:
+        if r: r.close()
 
     IPS = input('Would You Like To Assign Intrusion Policy To Rules? [y/N]: ').lower()
 
@@ -779,7 +820,7 @@ def PutIntrusionFile(server,headers,username,password):
                 Test = True
             print('Invalid UUID....')
         # Request Intrusion Policy Name
-        IPSNAME = input('Please enter Intrusion Policy Name exactly as seen in JSON: ')
+        IPSNAME = input('Please enter Intrusion Policy Name exactly as seen in API: ')
 
         Test = False
         while not Test:
@@ -790,7 +831,7 @@ def PutIntrusionFile(server,headers,username,password):
                 Test = True
             print('Invalid UUID....')
         # Request Variable Set Name
-        VSETNAME = input('Please enter Variable Set Name exactly as seen in JSON: ')
+        VSETNAME = input('Please enter Variable Set Name exactly as seen in API: ')
 
     FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower()
 
@@ -804,7 +845,7 @@ def PutIntrusionFile(server,headers,username,password):
                 Test = True
             print('Invalid UUID. Exiting...')
         # Request File Policy Name
-        FILENAME = input('Please enter File Policy Name exactly as seen in JSON: ')
+        FILENAME = input('Please enter File Policy Name exactly as seen in API: ')
 
     Test = False
     while not Test:
@@ -816,7 +857,7 @@ def PutIntrusionFile(server,headers,username,password):
         print('MUST PROVIDE OUTPUT FILE. Exiting...')
 
     # For Loop to parse data from raw JSON
-    for item in call_data['items']:
+    for item in ACP_DATA['items']:
         if item ['action'] == 'ALLOW':
             if IPS in (['yes','ye','y']):
                 # Create IPS Policy
