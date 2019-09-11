@@ -7,6 +7,7 @@ TOOLS AVAILABLE:
 
 _____________________________________________________________________________________________
 Blank URL GET Script:
+
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})
 2. Expand output to show details of each object *(Not Supported with {object_UUID} GET)
@@ -16,6 +17,7 @@ USER INPUT NEEDED:
 
 _____________________________________________________________________________________________
 Create Network Objects in bulk
+
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networks/)
 2. CSV Data Input file (CSV FORMAT - No Header Row: Column0 = ObjectName, Column1 = Address)
@@ -24,6 +26,7 @@ USER INPUT NEEDED:
 
 _____________________________________________________________________________________________
 Create Network Objects in bulk and add to new Object-Group
+
 USER INPUT NEEDED:
 1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
 2. TXT Data Input file (ASA "show run object-group" output)
@@ -32,6 +35,7 @@ USER INPUT NEEDED:
 
 _____________________________________________________________________________________________
 Update IPS and/or File Policy for Access Rules
+
 USER INPUT NEEDED:
 1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
 2. Access Policy UUID (/api/fmc_config/v1/domain/{domain_UUID}/policy/accesspolicies/{ACP_UUID})
