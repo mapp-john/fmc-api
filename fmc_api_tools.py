@@ -417,8 +417,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
             }
 
         # Process Host Entries
-        elif item.startswith(' network-object host'):
-            Address = item.strip(' network-object host')
+        elif item.startswith(' network-object host '):
+            Address = item.strip(' network-object host ')
             # Define Network-Object Name
             ObjectName = f'host-{Address)}'
             # Create Network-Object JSON Data 
