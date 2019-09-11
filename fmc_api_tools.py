@@ -371,7 +371,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
     for item in open_read_file:
         # Find Object-Group Name
         if item.startswith('object-group network '):
-            if ObGr == True:
+            if ObGr:
                 # Post existing Object-Group JSON, and reset counters
                 NetOb_Counter = 0
                 ObGr_Counter = 0
