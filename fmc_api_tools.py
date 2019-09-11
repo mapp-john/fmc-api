@@ -788,6 +788,7 @@ def PutIntrusionFile(server,headers,username,password):
         if status_code == 200:
             while 'next' in json_resp['paging']:
                 url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT ACCESS-POLICY PAGE... {url_get}')
                 try:
                     # REST call with SSL verification turned off
                     r = requests.get(url_get, headers=headers, verify=False)
