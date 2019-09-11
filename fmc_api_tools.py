@@ -129,7 +129,7 @@ def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
 # Define Blank URL Get Script as Function
 def BlankGet(server,headers,username,password):
     print ('''
-           ***********************************************************************************************
+***********************************************************************************************
 *                             Basic URL GET Script                                            *
 *_____________________________________________________________________________________________*
 *                                                                                             *
