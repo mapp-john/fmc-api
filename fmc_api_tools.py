@@ -934,7 +934,7 @@ def PutIntrusionFile(server,headers,username,password):
 print ('''
 ***********************************************************************************************
 *                                                                                             *
-*                   Cisco FMC v6 API Tools (Writte for Python 3.6+)                           *
+*                   Cisco FMC v6 API Tools (Written for Python 3.6+)                          *
 *                                                                                             *
 ***********************************************************************************************
 *                                                                                             *
