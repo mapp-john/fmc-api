@@ -74,7 +74,7 @@ def BlankGet(server,headers,username,password):
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
     # Request API URI Path
-    api_path = input('Please Enter URI: ').lower()
+    api_path = input('Please Enter URI: ').lower().strip()
 
     # Clean URI
     if (api_path[-1] == '/'):
@@ -117,7 +117,7 @@ def BlankGet(server,headers,username,password):
                 for i in range(6):
                     filename += chr(random.randint(97,122))
                 filename += '.txt'
-                print(f'RANDOM LOG FILE CREATED... {filename}')
+                print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
                 with open(filename, 'a') as OutFile:
                     json_resp = json.loads(resp)
                     OutFile.write(json.dumps(json.loads(resp),indent=4))
@@ -158,7 +158,7 @@ def PostNetworkObject(server,headers,username,password):
     headers['X-auth-access-token']=AccessToken(server,headers,username,password)
 
     # Request API URI Path
-    api_path = input('Please Enter URI: ').lower()
+    api_path = input('Please Enter URI: ').lower().strip()
 
     # Clean URI
     if (api_path[-1] == '/'):
@@ -181,7 +181,7 @@ def PostNetworkObject(server,headers,username,password):
     for i in range(6):
         filename += chr(random.randint(97,122))
     filename += '.txt'
-    print(f'RANDOM LOG FILE CREATED... {filename}')
+    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
     # Combine Server and API Path
     url = f'{server}{api_path}'
@@ -246,7 +246,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
     Test = False
     while not Test:
         # Request API URI Path
-        API_UUID = input('Please Enter FMC Domain UUID: ').lower()
+        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
         if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
             Test=True
         else:
@@ -255,7 +255,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
     Test = False
     while not Test:
         # Request Input File
-        read_file = input('Please Enter Input File /full/file/path.txt: ')
+        read_file = input('Please Enter Input File /full/file/path.txt: ').strip()
         if os.path.isfile(read_file):
             # Read csv file
             open_read_file = open(read_csv, 'r').readlines()
@@ -268,7 +268,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
     for i in range(6):
         filename += chr(random.randint(97,122))
     filename += '.txt'
-    print(f'RANDOM LOG FILE CREATED... {filename}')
+    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
     # Define Counters
     NetOb_Counter = 0
@@ -760,7 +760,7 @@ def PutIntrusionFile(server,headers,username,password):
     Test = False
     while not Test:
         # Request API URI Path
-        API_UUID = input('Please Enter FMC Domain UUID: ').lower()
+        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
         if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
             Test=True
         else:
@@ -769,7 +769,7 @@ def PutIntrusionFile(server,headers,username,password):
     Test = False
     while not Test:
         # Request API URI Path
-        ACP_UUID = input('Please Enter Access-Policy UUID: ').lower()
+        ACP_UUID = input('Please Enter Access-Policy UUID: ').lower().strip()
         if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', ACP_UUID):
             Test=True
         else:
@@ -812,7 +812,7 @@ def PutIntrusionFile(server,headers,username,password):
         Test = False
         while not Test:
             # Request UUID for Intrusion Policy
-            IPSUUID = input('Please enter Intrusion Policy UUID: ').lower()
+            IPSUUID = input('Please enter Intrusion Policy UUID: ').lower().strip()
             # Verify UUID with RegEx match
             if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', IPSUUID):
                 Test = True
@@ -833,13 +833,13 @@ def PutIntrusionFile(server,headers,username,password):
         # Request Variable Set Name
         VSETNAME = input('Please enter Variable Set Name exactly as seen in API: ')
 
-    FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower()
+    FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower().strip()
 
     if FILEPOLICY in (['yes','ye','y']):
         Test = False
         while not Test:
             # Request UUID for File Policy
-            FILEUUID = input('Please enter File Policy UUID: ').lower()
+            FILEUUID = input('Please enter File Policy UUID: ').lower().strip()
             # Verify UUID with RegEx match
             if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', FILEUUID):
                 Test = True
@@ -853,7 +853,7 @@ def PutIntrusionFile(server,headers,username,password):
     for i in range(6):
         filename += chr(random.randint(97,122))
     filename += '.txt'
-    print(f'RANDOM LOG FILE CREATED... {filename}')
+    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
     # For Loop to parse data from raw JSON
     for item in ACP_DATA['items']:
@@ -940,7 +940,7 @@ print ('''
 Test = False
 while not Test:
     # Request FMC server FQDN
-    server = input('Please Enter FMC fqdn: ').lower()
+    server = input('Please Enter FMC fqdn: ').lower().strip()
 
     # Validate FQDN 
     if server[-1] == '/':
@@ -962,7 +962,7 @@ server = f'https://{server}'
 headers = {'Content-Type': 'application/json','Accept': 'application/json'}
 
 # Request Username and Password without showing password in clear text
-username = input('Please Enter API Username: ')
+username = input('Please Enter API Username: ').strip()
 password = define_password()
 print ('''
 ***********************************************************************************************
