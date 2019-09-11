@@ -51,7 +51,7 @@ def AccessToken(server,headers,username,password):
 def BlankGet(server,headers,username,password):
     print ('''
 ***********************************************************************************************
-*                             Blank URL GET Script                                            *
+*                             Basic URL GET Script                                            *
 *_____________________________________________________________________________________________*
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
@@ -988,7 +988,7 @@ while run:
 *                                                                                             *
 * TOOLS AVAILABLE:                                                                            *
 *                                                                                             *
-*  1. Blank URL GET                                                                           *
+*  1. Basic URL GET                                                                           *
 *                                                                                             *
 *  2. Create Network-Objects in bulk (POST)                                                   *
 *                                                                                             *
