@@ -420,7 +420,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
         elif item.startswith(' network-object host '):
             Address = item.strip(' network-object host ')
             # Define Network-Object Name
-            ObjectName = f'host-{Address)}'
+            ObjectName = f'host-{Address}'
             # Create Network-Object JSON Data 
             post_data = {
             'name': ObjectName,
