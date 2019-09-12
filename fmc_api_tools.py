@@ -41,7 +41,7 @@ def AccessToken(server,headers,username,password):
             print('auth_token not found. Exiting...')
             sys.exit()
     except Exception as err:
-        print ('Error in generating auth token --> {err}')
+        print (f'Error in generating auth token --> {err}')
         sys.exit()
     return auth_token
 
@@ -350,7 +350,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
         read_file = input('Please Enter Input File /full/file/path.txt: ').strip()
         if os.path.isfile(read_file):
             # Read csv file
-            open_read_file = open(read_csv, 'r').readlines()
+            open_read_file = open(read_file, 'r').read()
             Test = True
         else:
             print('MUST PROVIDE INPUT FILE...')
@@ -368,7 +368,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
     ObGr_Counter = 0
     ObGr = False
     # Create For Loop To Process Each Item In CSV
-    for item in open_read_file:
+    for item in open_read_file.splitlines():
         # Find Object-Group Name
         if item.startswith('object-group network '):
             if ObGr:
@@ -410,7 +410,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
             ObGr_NAME_Orig = item.strip('object-group network ')
             ObGr_NAME = ObGr_NAME_Orig
             # Create Base JSON data for Object-Group
-            ObGr_Data = {
+            ObGr_json = {
             'name': ObGr_NAME,
             'objects': [],
             'type': 'NetworkGroup'
@@ -736,7 +736,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
             # Convert Netmask to CIDR notation    
             Address = netaddr.IPNetwork(net).cidr
             # Define Network-Object Name
-            ObjectName = f'net-{Address.replace("/","n")}'
+            ObjectName = f'net-{str(Address).replace("/","n")}'
             # Create Network-Object JSON Data 
             post_data = {
             'name': ObjectName,
