@@ -1555,7 +1555,7 @@ if __name__ == "__main__":
 *                                                                                             *
 *  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
 *                                                                                             *
-*  5. Get Inventory List from FMC                                                             *
+*  5. Get Inventory List from FMC (GET)                                                       *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1600,7 +1600,7 @@ if __name__ == "__main__":
 *                                                                                             *
 *  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
 *                                                                                             *
-*  5. Get Inventory List from FMC                                                             *
+*  5. Get Inventory List from FMC (GET)                                                       *
 *                                                                                             *
 ***********************************************************************************************
 ''')
