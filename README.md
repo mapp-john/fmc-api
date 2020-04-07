@@ -50,4 +50,4 @@ ________________________________________________________________________________
 **Get Inventory List from FMC**
 
 USER INPUT NEEDED:
-1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
+1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/devices/devicerecords)
