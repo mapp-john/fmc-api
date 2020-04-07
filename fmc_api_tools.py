@@ -416,6 +416,24 @@ def PostNetworkObjectGroup(server,headers,username,password):
             'type': 'NetworkGroup'
             }
 
+
+
+
+
+
+
+           # # Create Network-Object JSON Data RANGE 
+           # post_data = {
+           # 'name': ObjectName,
+           # 'type': 'Range',
+           # 'description': '',
+           # 'value': '1.1.1.1-1.1.1.2'
+           # }
+
+
+
+
+
         # Process Host Entries
         elif item.startswith(' network-object host '):
             Address = item.strip(' network-object host ')
@@ -1270,11 +1288,18 @@ def PutIntrusionFile(server,headers,username,password):
             finally:
                 if r: r.close()
 
+
+
 #
 #
 #
-# Initial input request
-print ('''
+# Run Script if main
+if __name__ == "__main__":
+    #
+    #
+    #
+    # Initial input request
+    print ('''
 ***********************************************************************************************
 *                                                                                             *
 *                   Cisco FMC v6 API Tools (Written for Python 3.6+)                          *
@@ -1291,76 +1316,34 @@ print ('''
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-Test = False
-while not Test:
-    # Request FMC server FQDN
-    server = input('Please Enter FMC fqdn: ').lower().strip()
-
-    # Validate FQDN 
-    if server[-1] == '/':
-        server = server[:-1]
-
-    # Perform Test Connection To FQDN
-    s = socket.socket()
-    print(f'Attempting to connect to {server} on port 443')
-    try:
-        s.connect((server, 443))
-        print(f'Connecton successful to {server} on port 443')
-        Test = True
-    except Exception as e:
-        print(f'Connection to {server} on port 443 failed: {e}')
-        sys.exit()
-
-# Adding HTTPS to Server for URL
-server = f'https://{server}'
-headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-
-# Request Username and Password without showing password in clear text
-username = input('Please Enter API Username: ').strip()
-password = define_password()
-print ('''
-***********************************************************************************************
-*                                                                                             *
-* TOOLS AVAILABLE:                                                                            *
-*                                                                                             *
-*  1. Basic URL GET                                                                           *
-*                                                                                             *
-*  2. Create Network-Objects in bulk (POST)                                                   *
-*                                                                                             *
-*  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
-*                                                                                             *
-*  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
-*                                                                                             *
-***********************************************************************************************
-''')
-
-#
-#
-#
-# Run script until user cancels
-run = True
-while run:
-
-    Script = False
-    while not Script:
-        script = input('Please Select Script: ')
-        if script == '1':
-            Script = True
-            BlankGet(server,headers,username,password)
-        elif script == '2':
-            Script = True
-            PostNetworkObject(server,headers,username,password)
-        elif script == '3':
-            Script = True
-            PostNetworkObjectGroup(server,headers,username,password)
-        elif script == '4':
-            Script = True
-            PutIntrusionFile(server,headers,username,password)
-        else:
-            print('INVALID ENTRY... ')
-
-    # Ask to end the loop
+    
+    Test = False
+    while not Test:
+        # Request FMC server FQDN
+        server = input('Please Enter FMC fqdn: ').lower().strip()
+    
+        # Validate FQDN 
+        if server[-1] == '/':
+            server = server[:-1]
+    
+        # Perform Test Connection To FQDN
+        s = socket.socket()
+        print(f'Attempting to connect to {server} on port 443')
+        try:
+            s.connect((server, 443))
+            print(f'Connecton successful to {server} on port 443')
+            Test = True
+        except Exception as e:
+            print(f'Connection to {server} on port 443 failed: {e}')
+            sys.exit()
+    
+    # Adding HTTPS to Server for URL
+    server = f'https://{server}'
+    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
+    
+    # Request Username and Password without showing password in clear text
+    username = input('Please Enter API Username: ').strip()
+    password = define_password()
     print ('''
 ***********************************************************************************************
 *                                                                                             *
@@ -1376,6 +1359,46 @@ while run:
 *                                                                                             *
 ***********************************************************************************************
 ''')
-    Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-    if Loop not in (['yes','ye','y']):
-        run = False
+    
+    #
+    #
+    #
+    # Run script until user cancels
+    while True:
+        Script = False
+        while not Script:
+            script = input('Please Select Script: ')
+            if script == '1':
+                Script = True
+                BlankGet(server,headers,username,password)
+            elif script == '2':
+                Script = True
+                PostNetworkObject(server,headers,username,password)
+            elif script == '3':
+                Script = True
+                PostNetworkObjectGroup(server,headers,username,password)
+            elif script == '4':
+                Script = True
+                PutIntrusionFile(server,headers,username,password)
+            else:
+                print('INVALID ENTRY... ')
+    
+        # Ask to end the loop
+        print ('''
+***********************************************************************************************
+*                                                                                             *
+* TOOLS AVAILABLE:                                                                            *
+*                                                                                             *
+*  1. Basic URL GET                                                                           *
+*                                                                                             *
+*  2. Create Network-Objects in bulk (POST)                                                   *
+*                                                                                             *
+*  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
+*                                                                                             *
+*  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
+*                                                                                             *
+***********************************************************************************************
+''')
+        Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
+        if Loop not in (['yes','ye','y']):
+            break
