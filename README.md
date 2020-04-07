@@ -5,6 +5,7 @@
 2. Create Network-Objects in bulk (POST)
 3. Create Network-Objects in bulk and add to New Object-Group (POST)
 4. Update IPS and/or File Policy for Access Rules (PUT)
+5. Get Inventory List from FMC (GET)
 
 
 _____________________________________________________________________________________________
@@ -44,3 +45,9 @@ USER INPUT NEEDED:
 3. Intrusion Policy (Yes/No)
 4. File Policy (Yes/No)
 5. Output Log File
+
+_____________________________________________________________________________________________
+**Get Inventory List from FMC**
+
+USER INPUT NEEDED:
+1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)
