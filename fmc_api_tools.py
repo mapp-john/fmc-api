@@ -1436,9 +1436,9 @@ def GetInventory(server,headers,username,password):
 
     # Create Base Dict
     INVENTORY = {
-        "deviceClusters":[],
-        "deviceHAPairs":[],
-        "devices":[]
+        'deviceClusters':[],
+        'deviceHAPairs':[],
+        'devices':[]
         }
 
     if 'items' in CLUSTER_DATA:
