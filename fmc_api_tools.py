@@ -47,6 +47,25 @@ def AccessToken(server,headers,username,password):
 
 #
 #
+# Get Device Details from Inventory List
+# And Delete item from Inventory List
+def GetDeviceDetails(ID,DeviceList):
+  temp_dict = {}
+  for item in DeviceList:
+    if item['id']==ID:
+      temp_dict['name'] = item['name']
+      temp_dict['model'] = item['model']
+      temp_dict['healthStatus'] = item['healthStatus']
+      temp_dict['sw_version'] = item['sw_version']
+      temp_dict['license_caps'] = item['license_caps']
+      if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
+      # Delete item from Device List
+      DeviceList.pop(DeviceList.index(item))
+  return temp_dict
+
+
+#
+#
 #
 # Get Net Object UUID
 def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
@@ -192,7 +211,7 @@ def BlankGet(server,headers,username,password):
         # REST call with SSL verification turned off:
         r = requests.get(url, headers=headers, verify=False)
         status_code = r.status_code
-        resp = r.text
+        resp = r.json()
         if (status_code == 200):
             print('GET successful...')
             # Ask if output should be saved to File
@@ -205,16 +224,15 @@ def BlankGet(server,headers,username,password):
                 filename += '.txt'
                 print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
                 with open(filename, 'a') as OutFile:
-                    json_resp = json.loads(resp)
-                    OutFile.write(json.dumps(json.loads(resp),indent=4))
+                    OutFile.write(json.dumps(resp,indent=4))
             elif save in (['no','n','']):
-                print(json.dumps(json.loads(resp),indent=4))
+                print(json.dumps(resp,indent=4))
         else:
             r.raise_for_status()
             print(f'Error occurred in GET --> {resp}')
     except requests.exceptions.HTTPError as err:
         print(f'Error in connection --> {err}')
-        print(json.dumps(json.loads(resp),indent=4))
+        print(json.dumps(resp,indent=4))
     # End 
     finally:
         try:
@@ -1290,6 +1308,186 @@ def PutIntrusionFile(server,headers,username,password):
 
 
 
+
+
+#
+#
+#
+# Define Inventory List Script as Funtion
+def GetInventory(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                           Pull Full FMC Device Inventory List                               *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FMC Domain UUID                                                                         *
+*           (/api/fmc_config/v1/domain/{domain_UUID}/devices/devicerecords)                   *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    print('Generating Access Token')
+    # Generate Access Token
+    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+
+    Test = False
+    while not Test:
+        # Request API URI Path
+        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
+        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
+            Test=True
+        else:
+            print('Invalid UUID...')
+
+    # Create Get DATA JSON Dictionary to collect data from GET calls
+    print('*\n*\nCOLLECTING ALL INVENTORY...')
+    try:
+        # REST call with SSL verification turned off
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords?offset=0&limit=1000&expanded=true'
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        print(f'Status code is: {status_code}')
+        DEVICELIST_DATA = r.json()
+        json_resp = r.json()
+        if status_code == 200:
+            while 'next' in json_resp['paging']:
+                url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT INVENTORY PAGE... {url_get}')
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            DEVICELIST_DATA['items'].append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+
+    # Create Get DATA JSON Dictionary to collect data from GET calls
+    print('*\n*\nCOLLECTING CLUSTER INVENTORY...')
+    try:
+        # REST call with SSL verification turned off
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deviceclusters/ftddevicecluster?offset=0&limit=1000&expanded=true'
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        print(f'Status code is: {status_code}')
+        CLUSTER_DATA = r.json()
+        json_resp = r.json()
+        if status_code == 200:
+            while 'next' in json_resp['paging']:
+                url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT CLUSTER INVENTORY PAGE... {url_get}')
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            CLUSTER_DATA['items'].append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+
+    # Create Get DATA JSON Dictionary to collect data from GET calls
+    print('*\n*\nCOLLECTING HA PAIR INVENTORY...')
+    try:
+        # REST call with SSL verification turned off
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devicehapairs/ftddevicehapairs?offset=0&limit=1000&expanded=true'
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        print(f'Status code is: {status_code}')
+        HA_DATA = r.json()
+        json_resp = r.json()
+        if status_code == 200:
+            while 'next' in json_resp['paging']:
+                url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT HA PAIR INVENTORY PAGE... {url_get}')
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    print(f'Status code is: {status_code}')
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            HA_DATA['items'].append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+
+    ## TEST PRINT
+    #print(json.dumps(HA_DATA,indent=4))
+
+    # Create Base Dict
+    INVENTORY = {
+        "deviceClusters":[],
+        "deviceHAPairs":[],
+        "devices":[]
+        }
+
+    if 'items' in CLUSTER_DATA:
+        for item in CLUSTER_DATA['items']:
+            temp_dict = {}
+            temp_dict['name']= item['name']
+            temp_dict['masterDevice'] = GetDeviceDetails(item['masterDevice']['id'],DEVICELIST_DATA['items'])
+            temp_dict['slaveDevices'] = []
+            for item in item['slaveDevices']:
+                temp_dict['slaveDevices'].append(GetDeviceDetails(item['id'],DEVICELIST_DATA['items']))
+            INVENTORY['deviceClusters'].append(temp_dict)
+
+    if 'items' in HA_DATA:
+        for item in HA_DATA['items']:
+            temp_dict = {}
+            temp_dict['name']= item['name']
+            temp_dict['primary'] = GetDeviceDetails(item['primary']['id'],DEVICELIST_DATA['items'])
+            temp_dict['secondary'] = GetDeviceDetails(item['secondary']['id'],DEVICELIST_DATA['items'])
+            INVENTORY['deviceHAPairs'].append(temp_dict)
+
+    for item in DEVICELIST_DATA['items']:
+        temp_dict = {}
+        temp_dict['name'] = item['name']
+        temp_dict['model'] = item['model']
+        temp_dict['healthStatus'] = item['healthStatus']
+        temp_dict['sw_version'] = item['sw_version']
+        temp_dict['license_caps'] = item['license_caps']
+        if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
+        INVENTORY['devices'].append(temp_dict)
+
+
+    print('FMC Inventory compilation successful...')
+    # Ask if output should be saved to File
+    save = input('Would You Like To Save The Output To File? [y/N]: ').lower()
+    if save in (['yes','ye','y']):
+        # Random Generated JSON Output File
+        filename = ''
+        for i in range(6):
+            filename += chr(random.randint(97,122))
+        filename += '.txt'
+        print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
+        with open(filename, 'a') as OutFile:
+            OutFile.write(json.dumps(INVENTORY,indent=4))
+    elif save in (['no','n','']):
+        print(json.dumps(INVENTORY,indent=4))
+
+
+
+
 #
 #
 #
@@ -1316,16 +1514,16 @@ if __name__ == "__main__":
 *                                                                                             *
 ***********************************************************************************************
 ''')
-    
+
     Test = False
     while not Test:
         # Request FMC server FQDN
         server = input('Please Enter FMC fqdn: ').lower().strip()
-    
+
         # Validate FQDN 
         if server[-1] == '/':
             server = server[:-1]
-    
+
         # Perform Test Connection To FQDN
         s = socket.socket()
         print(f'Attempting to connect to {server} on port 443')
@@ -1336,11 +1534,11 @@ if __name__ == "__main__":
         except Exception as e:
             print(f'Connection to {server} on port 443 failed: {e}')
             sys.exit()
-    
+
     # Adding HTTPS to Server for URL
     server = f'https://{server}'
     headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    
+
     # Request Username and Password without showing password in clear text
     username = input('Please Enter API Username: ').strip()
     password = define_password()
@@ -1357,9 +1555,11 @@ if __name__ == "__main__":
 *                                                                                             *
 *  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
 *                                                                                             *
+*  5. Get Inventory List from FMC                                                             *
+*                                                                                             *
 ***********************************************************************************************
 ''')
-    
+
     #
     #
     #
@@ -1380,9 +1580,12 @@ if __name__ == "__main__":
             elif script == '4':
                 Script = True
                 PutIntrusionFile(server,headers,username,password)
+            elif script == '5':
+                Script = True
+                GetInventory(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
-    
+
         # Ask to end the loop
         print ('''
 ***********************************************************************************************
@@ -1396,6 +1599,8 @@ if __name__ == "__main__":
 *  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
 *                                                                                             *
 *  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
+*                                                                                             *
+*  5. Get Inventory List from FMC                                                             *
 *                                                                                             *
 ***********************************************************************************************
 ''')
