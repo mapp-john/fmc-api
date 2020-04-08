@@ -35,15 +35,15 @@ def AccessToken(server,headers,username,password):
         # REST call with SSL verification turned off:
         r = requests.post(auth_url, headers=headers, auth=requests.auth.HTTPBasicAuth(username,password), verify=False)
         print(r.status_code)
-        auth_headers = r.headers
-        auth_token = auth_headers.get('X-auth-access-token', default=None)
+        auth_token = r.headers['X-auth-access-token']
+        domains = json.loads(r.headers['DOMAINS'])
         if auth_token == None:
             print('auth_token not found. Exiting...')
             sys.exit()
     except Exception as err:
         print (f'Error in generating auth token --> {err}')
         sys.exit()
-    return auth_token
+    return auth_token,domains
 
 #
 #
@@ -175,8 +175,9 @@ def BlankGet(server,headers,username,password):
 ''')
 
     print('Generating Access Token')
-    # Get API Token
-    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
 
     # Request API URI Path
     api_path = input('Please Enter URI: ').lower().strip()
@@ -261,8 +262,9 @@ def PostNetworkObject(server,headers,username,password):
 ***********************************************************************************************
 ''')
     print('Generating Access Token')
-    # Get API Token
-    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
 
     # Request API URI Path
     api_path = input('Please Enter URI: ').lower().strip()
@@ -342,25 +344,32 @@ def PostNetworkObjectGroup(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FMC Domain UUID (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)         *
-*                                                                                             *
-*  2. TXT Data Input file (ASA "show run object-group" output)                                *
+*  1. TXT Data Input file (ASA "show run object-group" output)                                *
 *                                                                                             *
 ***********************************************************************************************
 ''')
 
     print('Generating Access Token')
-    # Generate Access Token
-    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
 
     Test = False
-    while not Test:
-        # Request API URI Path
-        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
-        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
-            Test=True
-        else:
-            print('Invalid UUID...')
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['name']
 
     Test = False
     while not Test:
@@ -469,7 +478,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
             if NetOb_Counter in list(range(50,2000,50)):
                 ## Generate Access Token
                 print ('Attempting to Renew Token...')
-                headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+                results=AccessToken(server,headers,username,password)
+                headers['X-auth-access-token']=results[0]
             # Perform POST for each Network-Object
             try:
                 # Format URL for Network-Object POST
@@ -612,7 +622,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
                     # Error Handling for Access Token Timeout
                     elif 'Access token invalid' in item['description']: 
                         print ('Access token invalid... Attempting to Renew Token...')
-                        headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+                        results=AccessToken(server,headers,username,password)
+                        headers['X-auth-access-token']=results[0]
 
                         # Perform POST for each Network-Object
                         try:
@@ -785,7 +796,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
             if NetOb_Counter in list(range(50,2000,50)):
                 ## Generate Access Token
                 print ('Attempting to Renew Token...')
-                headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+                results=AccessToken(server,headers,username,password)
+                headers['X-auth-access-token']=results[0]
             # Perform POST for each Network-Object
             try:
                 # Format URL for Network-Object POST
@@ -928,7 +940,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
                     # Error Handling for Access Token Timeout
                     elif 'Access token invalid' in item['description']: 
                         print ('Access token invalid... Attempting to Renew Token...')
-                        headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+                        results=AccessToken(server,headers,username,password)
+                        headers['X-auth-access-token']=results[0]
 
                         # Perform POST for each Network-Object
                         try:
@@ -1130,31 +1143,37 @@ def PutIntrusionFile(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FMC Domain UUID                                                                         *
-*           (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/)                   *
-*                                                                                             *
-*  2. Access Policy UUID                                                                      *
+*  1. Access Policy UUID                                                                      *
 *           (/api/fmc_config/v1/domain/{domain_UUID}/policy/accesspolicies/{ACP_UUID})        *
 *                                                                                             *
-*  3. Intrusion Policy (Yes/No)                                                               *
+*  2. Intrusion Policy (Yes/No)                                                               *
 *                                                                                             *
-*  4. File Policy (Yes/No)                                                                    *
+*  3. File Policy (Yes/No)                                                                    *
 *                                                                                             *
 ***********************************************************************************************
 ''')
 
     print('Generating Access Token')
-    # Generate Access Token
-    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
 
     Test = False
-    while not Test:
-        # Request API URI Path
-        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
-        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
-            Test=True
-        else:
-            print('Invalid UUID...')
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['name']
 
     Test = False
     while not Test:
@@ -1320,26 +1339,37 @@ def GetInventory(server,headers,username,password):
 *                           Pull Full FMC Device Inventory List                               *
 *_____________________________________________________________________________________________*
 *                                                                                             *
-* USER INPUT NEEDED:                                                                          *
-*                                                                                             *
-*  1. FMC Domain UUID                                                                         *
-*           (/api/fmc_config/v1/domain/{domain_UUID}/devices/devicerecords)                   *
-*                                                                                             *
 ***********************************************************************************************
 ''')
 
     print('Generating Access Token')
-    # Generate Access Token
-    headers['X-auth-access-token']=AccessToken(server,headers,username,password)
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
 
     Test = False
-    while not Test:
-        # Request API URI Path
-        API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
-        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
-            Test=True
-        else:
-            print('Invalid UUID...')
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['name']
+
+        ## Request API URI Path
+        #API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
+        #if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
+        #    Test=True
+        #else:
+        #    print('Invalid UUID...')
 
     # Create Get DATA JSON Dictionary to collect data from GET calls
     print('*\n*\nCOLLECTING ALL INVENTORY...')
@@ -1459,15 +1489,16 @@ def GetInventory(server,headers,username,password):
             temp_dict['secondary'] = GetDeviceDetails(item['secondary']['id'],DEVICELIST_DATA['items'])
             INVENTORY['deviceHAPairs'].append(temp_dict)
 
-    for item in DEVICELIST_DATA['items']:
-        temp_dict = {}
-        temp_dict['name'] = item['name']
-        temp_dict['model'] = item['model']
-        temp_dict['healthStatus'] = item['healthStatus']
-        temp_dict['sw_version'] = item['sw_version']
-        temp_dict['license_caps'] = item['license_caps']
-        if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-        INVENTORY['devices'].append(temp_dict)
+    if 'items' in DEVICELIST_DATA:
+        for item in DEVICELIST_DATA['items']:
+            temp_dict = {}
+            temp_dict['name'] = item['name']
+            temp_dict['model'] = item['model']
+            temp_dict['healthStatus'] = item['healthStatus']
+            temp_dict['sw_version'] = item['sw_version']
+            temp_dict['license_caps'] = item['license_caps']
+            if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
+            INVENTORY['devices'].append(temp_dict)
 
 
     print('FMC Inventory compilation successful...')
