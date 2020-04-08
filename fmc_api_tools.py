@@ -369,7 +369,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
             if not Test:
                 print('Invalid Selection...\n')
     else:
-        API_UUID = domains[0]['name']
+        API_UUID = domains[0]['uuid']
 
     Test = False
     while not Test:
@@ -1173,7 +1173,7 @@ def PutIntrusionFile(server,headers,username,password):
             if not Test:
                 print('Invalid Selection...\n')
     else:
-        API_UUID = domains[0]['name']
+        API_UUID = domains[0]['uuid']
 
     Test = False
     while not Test:
