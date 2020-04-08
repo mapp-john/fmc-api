@@ -1362,7 +1362,7 @@ def GetInventory(server,headers,username,password):
             if not Test:
                 print('Invalid Selection...\n')
     else:
-        API_UUID = domains[0]['name']
+        API_UUID = domains[0]['uuid']
 
         ## Request API URI Path
         #API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
