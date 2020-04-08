@@ -1536,7 +1536,6 @@ def GetInventory(server,headers,username,password):
                     model = item['model']
                     version = item['sw_version']
                     status = item['healthStatus']
-                    model = item['model']
                     if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
                     OutFile.write(f'{name},{model},{version},{status},{serial}\n')
 
