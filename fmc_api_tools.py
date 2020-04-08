@@ -1471,8 +1471,8 @@ def GetInventory(server,headers,username,password):
 
 
     print('FMC Inventory compilation successful...')
-    # Ask if output should be saved to File
-    save = input('Would You Like To Save The Output To File? [y/N]: ').lower()
+    # Ask if JSON output should be saved to File
+    save = input('Would You Like To Save The JSON Output To File? [y/N]: ').lower()
     if save in (['yes','ye','y']):
         # Random Generated JSON Output File
         filename = ''
@@ -1485,7 +1485,60 @@ def GetInventory(server,headers,username,password):
     elif save in (['no','n','']):
         print(json.dumps(INVENTORY,indent=4))
 
-
+    # Ask if CSV output should be saved to File
+    save = input('Would You Like To Save CSV Output To File? [y/N]: ').lower()
+    if save in (['yes','ye','y']):
+        # Random Generated CSV Output File
+        filename = ''
+        for i in range(6):
+            filename += chr(random.randint(97,122))
+        filename += '.csv'
+        print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
+        with open(filename, 'a') as OutFile:
+            OutFile.write('NAME,MODEL,VERSION,STATUS,CHASSIS_SERIAL\n')
+            if INVENTORY['deviceClusters'] != []:
+                for item in INVENTORY['deviceClusters']:
+                    serial = ''
+                    name = item['masterDevice']['name']
+                    model = item['masterDevice']['model']
+                    version = item['masterDevice']['sw_version']
+                    status = item['masterDevice']['healthStatus']
+                    if 'chassisData' in item['masterDevice']: serial = item['masterDevice']['chassisData']['chassisSerialNo']
+                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    for item in item['slaveDevices']:
+                        serial = ''
+                        name = item['name']
+                        model = item['model']
+                        version = item['sw_version']
+                        status = item['healthStatus']
+                        if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
+                        OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+            if INVENTORY['deviceHAPairs'] != []:
+                for item in INVENTORY['deviceHAPairs']:
+                    serial = ''
+                    name = item['primary']['name']
+                    model = item['primary']['model']
+                    version = item['primary']['sw_version']
+                    status = item['primary']['healthStatus']
+                    if 'chassisData' in item['primary']: serial = item['primary']['chassisData']['chassisSerialNo']
+                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    serial = ''
+                    name = item['secondary']['name']
+                    model = item['secondary']['model']
+                    version = item['secondary']['sw_version']
+                    status = item['secondary']['healthStatus']
+                    if 'chassisData' in item['secondary']: serial = item['secondary']['chassisData']['chassisSerialNo']
+                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+            if INVENTORY['devices'] != []:
+                for item in INVENTORY['devices']:
+                    serial = ''
+                    name = item['name']
+                    model = item['model']
+                    version = item['sw_version']
+                    status = item['healthStatus']
+                    model = item['model']
+                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
+                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
 
 
 #
