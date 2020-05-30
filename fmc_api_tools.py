@@ -1,4 +1,4 @@
-# Import Required Modules    
+# Import Required Modules
 import os
 import re
 import sys
@@ -10,146 +10,13 @@ import netaddr
 import getpass
 import requests
 
+# Import custom modules from file
+from fmc_api_modules import \
+        define_password,\
+        AccessToken,\
+        GetDeviceDetails,\
+        GetNetObjectUUID
 
-#
-#
-#
-# Define Password Function
-def define_password():
-    password = None
-    while not password:
-        password = getpass.getpass('Please Enter API Password: ')
-        passwordverify = getpass.getpass('Re-enter API Password to Verify: ')
-        if not password == passwordverify:
-            print('Passwords Did Not Match Please Try Again')
-            password = None
-    return password
-
-#
-#
-#
-# Define Generate Access Token Function
-def AccessToken(server,headers,username,password):
-    auth_url = f'{server}/api/fmc_platform/v1/auth/generatetoken'
-    try:
-        # REST call with SSL verification turned off:
-        r = requests.post(auth_url, headers=headers, auth=requests.auth.HTTPBasicAuth(username,password), verify=False)
-        print(r.status_code)
-        auth_token = r.headers['X-auth-access-token']
-        domains = json.loads(r.headers['DOMAINS'])
-        if auth_token == None:
-            print('auth_token not found. Exiting...')
-            sys.exit()
-    except Exception as err:
-        print (f'Error in generating auth token --> {err}')
-        sys.exit()
-    return auth_token,domains
-
-#
-#
-# Get Device Details from Inventory List
-# And Delete item from Inventory List
-def GetDeviceDetails(ID,DeviceList):
-  temp_dict = {}
-  for item in DeviceList:
-    if item['id']==ID:
-      temp_dict['name'] = item['name']
-      temp_dict['model'] = item['model']
-      temp_dict['healthStatus'] = item['healthStatus']
-      temp_dict['sw_version'] = item['sw_version']
-      temp_dict['license_caps'] = item['license_caps']
-      if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-      # Delete item from Device List
-      DeviceList.pop(DeviceList.index(item))
-  return temp_dict
-
-
-#
-#
-#
-# Get Net Object UUID
-def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
-    # Create Get DATA JSON Dictionary to collect data from GET calls
-    GetDATA = {}
-    GetDATA['items'] = []
-    try:
-        # Collect Network Objects
-        url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?offset=0&limit=1000'
-        # REST call with SSL verification turned off
-        r = requests.get(url_get, headers=headers, verify=False)
-        status_code = r.status_code
-        resp = r.text
-        print(f'Status code is: {status_code}')
-        json_resp = r.json()
-        if status_code == 200:
-            # Loop for First Page of Items
-            for item in json_resp['items']:
-                # Append Items to New Dictionary
-                GetDATA['items'].append({'name': item['name'],'id': item['id']})
-            while json_resp['paging'].__contains__('next'):
-                url_get = json_resp['paging']['next'][0]
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    resp = r.text
-                    print(f'Status code is: {status_code}')
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            GetDATA['items'].append({'name': item['name'],'id': item['id']})
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-                    outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-        # Collect Host Objects
-        url_get = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?offset=0&limit=1000'
-        # REST call with SSL verification turned off
-        r = requests.get(url_get, headers=headers, verify=False)
-        status_code = r.status_code
-        resp = r.text
-        print(f'Status code is: {status_code}')
-        json_resp = r.json()
-        if status_code == 200:
-            # Loop for First Page of Items
-            for item in json_resp['items']:
-                # Append Items to New Dictionary
-                GetDATA['items'].append({'name': item['name'],'id': item['id']})
-            while json_resp['paging'].__contains__('next'):
-                url_get = json_resp['paging']['next'][0]
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    resp = r.text
-                    print(f'Status code is: {status_code}')
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            GetDATA['items'].append({'name': item['name'],'id': item['id']})
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-                    outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-                try:
-                    if r: r.close()
-                except:
-                    None
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
-        outfile.write(f'Error occurred in POST --> {resp}\n{ObjectName}\n')
-    try:
-        if r: r.close()
-    except:
-        None
-
-    for item in GetDATA['items']:
-        if item['name'] == ObjectName:
-            # Pull Object UUID from json_resp data
-            ObjectID = item['id']
-    return ObjectID
 #
 #
 #
@@ -234,7 +101,7 @@ def BlankGet(server,headers,username,password):
     except requests.exceptions.HTTPError as err:
         print(f'Error in connection --> {err}')
         print(json.dumps(resp,indent=4))
-    # End 
+    # End
     finally:
         try:
             if r: r.close()
@@ -303,7 +170,7 @@ def PostNetworkObject(server,headers,username,password):
     for row in my_csv_reader:
         # Pull Object Name and Address from CSV
         ObjectName = row[0]
-        Address = row[1] 
+        Address = row[1]
         post_data = {
         'name': ObjectName,
         'type': 'Network',
@@ -449,7 +316,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
 
 
 
-           # # Create Network-Object JSON Data RANGE 
+           # # Create Network-Object JSON Data RANGE
            # post_data = {
            # 'name': ObjectName,
            # 'type': 'Range',
@@ -466,7 +333,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
             Address = item.strip(' network-object host ')
             # Define Network-Object Name
             ObjectName = f'host-{Address}'
-            # Create Network-Object JSON Data 
+            # Create Network-Object JSON Data
             post_data = {
             'name': ObjectName,
             'type': 'Host',
@@ -553,12 +420,12 @@ def PostNetworkObjectGroup(server,headers,username,password):
                 json_resp = json.loads(resp)
                 print(f'Error in connection -->{err}')
                 outfile.write(f'Error in connection --> {err}\n{json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                for item in json_resp['error']['messages']: 
+                for item in json_resp['error']['messages']:
                     # Error Handling for Network-Object that already exists
-                    if 'already exists' in item['description']: 
+                    if 'already exists' in item['description']:
                         print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
-                        # Perform GET to grab UUID for Network Object that already exists 
+                        # Perform GET to grab UUID for Network Object that already exists
                         ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                         # Append Object-Group JSON with new entry for Network-Object
@@ -620,7 +487,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
                                     None
 
                     # Error Handling for Access Token Timeout
-                    elif 'Access token invalid' in item['description']: 
+                    elif 'Access token invalid' in item['description']:
                         print ('Access token invalid... Attempting to Renew Token...')
                         results=AccessToken(server,headers,username,password)
                         headers['X-auth-access-token']=results[0]
@@ -704,12 +571,12 @@ def PostNetworkObjectGroup(server,headers,username,password):
                             json_resp = json.loads(resp)
                             print (f'Error in connection --> {err}')
                             outfile.write(f'Error in connection --> {err}'+'\n'+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                            for item in json_resp['error']['messages']: 
+                            for item in json_resp['error']['messages']:
                                 # Error Handling for Network-Object that already exists
                                 if 'already exists' in item['description']:
                                     print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
-                                    # Perform GET to grab UUID for Network Object that already exists 
+                                    # Perform GET to grab UUID for Network Object that already exists
                                     ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                                     # Append Object-Group JSON with new entry for Network-Object
@@ -780,11 +647,11 @@ def PostNetworkObjectGroup(server,headers,username,password):
         # Process Network Entries
         elif item.startswith(' network-object '):
             net = item.strip(' network-object ').replace(' ','/')
-            # Convert Netmask to CIDR notation    
+            # Convert Netmask to CIDR notation
             Address = netaddr.IPNetwork(net).cidr
             # Define Network-Object Name
             ObjectName = f'net-{str(Address).replace("/","n")}'
-            # Create Network-Object JSON Data 
+            # Create Network-Object JSON Data
             post_data = {
             'name': ObjectName,
             'type': 'Network',
@@ -871,12 +738,12 @@ def PostNetworkObjectGroup(server,headers,username,password):
                 json_resp = json.loads(resp)
                 print(f'Error in connection -->{err}')
                 outfile.write(f'Error in connection --> {err}\n{json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                for item in json_resp['error']['messages']: 
+                for item in json_resp['error']['messages']:
                     # Error Handling for Network-Object that already exists
                     if 'already exists' in item['description']:
                         print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
-                        # Perform GET to grab UUID for Network Object that already exists 
+                        # Perform GET to grab UUID for Network Object that already exists
                         ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                         # Append Object-Group JSON with new entry for Network-Object
@@ -938,7 +805,7 @@ def PostNetworkObjectGroup(server,headers,username,password):
                                     None
 
                     # Error Handling for Access Token Timeout
-                    elif 'Access token invalid' in item['description']: 
+                    elif 'Access token invalid' in item['description']:
                         print ('Access token invalid... Attempting to Renew Token...')
                         results=AccessToken(server,headers,username,password)
                         headers['X-auth-access-token']=results[0]
@@ -1022,12 +889,12 @@ def PostNetworkObjectGroup(server,headers,username,password):
                             json_resp = json.loads(resp)
                             print (f'Error in connection --> {err}')
                             outfile.write(f'Error in connection --> {err}'+'\n'+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                            for item in json_resp['error']['messages']: 
+                            for item in json_resp['error']['messages']:
                                 # Error Handling for Network-Object that already exists
                                 if 'already exists' in item['description']:
                                     print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
 
-                                    # Perform GET to grab UUID for Network Object that already exists 
+                                    # Perform GET to grab UUID for Network Object that already exists
                                     ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
 
                                     # Append Object-Group JSON with new entry for Network-Object
@@ -1603,9 +1470,11 @@ if __name__ == "__main__":
         # Request FMC server FQDN
         server = input('Please Enter FMC fqdn: ').lower().strip()
 
-        # Validate FQDN 
+        # Validate FQDN
         if server[-1] == '/':
             server = server[:-1]
+        if server.startswith('https://') or server.startswith('http://'):
+            server = server.replace('http://','').replace('https://','')
 
         # Perform Test Connection To FQDN
         s = socket.socket()
@@ -1614,9 +1483,8 @@ if __name__ == "__main__":
             s.connect((server, 443))
             print(f'Connecton successful to {server} on port 443')
             Test = True
-        except Exception as e:
-            print(f'Connection to {server} on port 443 failed: {e}')
-            sys.exit()
+        except:
+            print(f'Connection to {server} on port 443 failed: {traceback.format_exc()}\n\n')
 
     # Adding HTTPS to Server for URL
     server = f'https://{server}'
