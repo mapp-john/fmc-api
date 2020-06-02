@@ -86,10 +86,8 @@ def BlankGet(server,headers,username,password):
             save = input('Would You Like To Save The Output To File? [y/N]: ').lower()
             if save in (['yes','ye','y']):
                 # Random Generated JSON Output File
-                filename = ''
-                for i in range(6):
-                    filename += chr(random.randint(97,122))
-                filename += '.txt'
+                filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+                filename += '.json'
                 print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
                 with open(filename, 'a') as OutFile:
                     OutFile.write(json.dumps(resp,indent=4))
@@ -153,10 +151,8 @@ def PostNetworkObject(server,headers,username,password):
             print('MUST PROVIDE INPUT FILE...')
 
     # Random Generated JSON Output File
-    filename = ''
-    for i in range(6):
-        filename += chr(random.randint(97,122))
-    filename += '.txt'
+    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+    filename += '.json'
     print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
     # Combine Server and API Path
@@ -250,10 +246,8 @@ def PostNetworkObjectGroup(server,headers,username,password):
             print('MUST PROVIDE INPUT FILE...')
 
     # Random Generated JSON Output File
-    filename = ''
-    for i in range(6):
-        filename += chr(random.randint(97,122))
-    filename += '.txt'
+    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+    filename += '.json'
     print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
     outfile = open(filename,'w')
 
@@ -1126,10 +1120,8 @@ def PutIntrusionFile(server,headers,username,password):
         FILENAME = input('Please enter File Policy Name exactly as seen in API: ')
 
     # Random Generated JSON Output File
-    filename = ''
-    for i in range(6):
-        filename += chr(random.randint(97,122))
-    filename += '.txt'
+    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+    filename += '.json'
     print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
     # For Loop to parse data from raw JSON
@@ -1373,10 +1365,8 @@ def GetInventory(server,headers,username,password):
     save = input('Would You Like To Save The JSON Output To File? [y/N]: ').lower()
     if save in (['yes','ye','y']):
         # Random Generated JSON Output File
-        filename = ''
-        for i in range(6):
-            filename += chr(random.randint(97,122))
-        filename += '.txt'
+        filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+        filename += '.json'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
             OutFile.write(json.dumps(INVENTORY,indent=4))
@@ -1387,9 +1377,7 @@ def GetInventory(server,headers,username,password):
     save = input('Would You Like To Save CSV Output To File? [y/N]: ').lower()
     if save in (['yes','ye','y']):
         # Random Generated CSV Output File
-        filename = ''
-        for i in range(6):
-            filename += chr(random.randint(97,122))
+        filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
         filename += '.csv'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
@@ -1473,8 +1461,8 @@ if __name__ == "__main__":
         # Validate FQDN
         if server[-1] == '/':
             server = server[:-1]
-        if server.startswith('https://') or server.startswith('http://'):
-            server = server.replace('http://','').replace('https://','')
+        if '//' in server:
+            server = server.split('//')[-1]
 
         # Perform Test Connection To FQDN
         s = socket.socket()
@@ -1556,5 +1544,5 @@ if __name__ == "__main__":
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6']):
             break
