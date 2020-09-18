@@ -1,14 +1,15 @@
 # Import Required Modules
-import os
-import re
-import sys
-import csv
-import json
-import socket
-import random
-import netaddr
-import getpass
-import requests
+import os,\
+        re,\
+        sys,\
+        csv,\
+        json,\
+        socket,\
+        random,\
+        netaddr,\
+        getpass,\
+        requests,\
+        traceback
 
 # Import custom modules from file
 from fmc_api_modules import \
@@ -1064,15 +1065,23 @@ def PutIntrusionFile(server,headers,username,password):
                     r = requests.get(url_get, headers=headers, verify=False)
                     status_code = r.status_code
                     print(f'Status code is: {status_code}')
-                    json_resp = r.json()
                     if status_code == 200:
                         # Loop for First Page of Items
+                        json_resp = r.json()
                         for item in json_resp['items']:
                             # Append Items to New Dictionary
                             ACP_DATA['items'].append(item)
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-                    outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
+                except requests.exceptions.HTTPError:
+                    err_resp = r.json()
+                    for item in err_resp['error']['messages']:
+                        # Error Handling for Access Token Timeout
+                        if 'Access token invalid' in item['description']:
+                            print ('Access token invalid... Attempting to Renew Token...')
+                            results=AccessToken(server,headers,username,password)
+                            headers['X-auth-access-token']=results[0]
+                        else:
+                            print (f'Error in connection --> {traceback.format_exc()}')
+                            outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
     except requests.exceptions.HTTPError as err:
         print (f'Error in connection --> {err}')
         outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
@@ -1162,24 +1171,49 @@ def PutIntrusionFile(server,headers,username,password):
             # Try API PUT for the item processed using the URL taken from item
             put_data = item
             try:
-                 # REST call with SSL verification turned off:
-                 r = requests.put(url, data=json.dumps(put_data), headers=headers, verify=False)
-                 print(f'Performing API PUT to: {url}')
-                 status_code = r.status_code
-                 resp = r.text
-                 if (status_code == 200):
-                     print(f'Items Processing... View Output File For Full Change Log... {filename}')
-                     with open(filename, 'a') as OutFile:
-                         json_resp = json.loads(resp)
-                         OutFile.write(json.dumps(json.loads(resp),indent=4))
-                 else:
-                     r.raise_for_status()
-                     print(f'Status code:--> {status_code}')
-                     print(f'Error occurred in PUT --> {resp}')
-            except requests.exceptions.HTTPError as err:
-                print (f'Error in connection --> {err}')
-                json_resp = json.loads(resp)
-                print(json.dumps(json_resp,indent=4))
+                # REST call with SSL verification turned off:
+                r = requests.put(url, data=json.dumps(put_data), headers=headers, verify=False)
+                print(f'Performing API PUT to: {url}')
+                status_code = r.status_code
+                json_resp = r.json()
+                if status_code == 200:
+                    print(f'Items Processing... View Output File For Full Change Log... {filename}')
+                    with open(filename, 'a') as OutFile:
+                        OutFile.write(json.dumps(json_resp,indent=4))
+                else:
+                    print(f'Status code:--> {status_code}')
+                    print(f'Error occurred in PUT --> {json_resp}')
+                    r.raise_for_status()
+            except requests.exceptions.HTTPError:
+                err_resp = r.json()
+                for item in err_resp['error']['messages']:
+                    # Error Handling for Access Token Timeout
+                    if 'Access token invalid' in item['description']:
+                        print ('Access token invalid... Attempting to Renew Token...')
+                        results=AccessToken(server,headers,username,password)
+                        headers['X-auth-access-token']=results[0]
+                        try:
+
+                            # REST call with SSL verification turned off:
+                            r = requests.put(url, data=json.dumps(put_data), headers=headers, verify=False)
+                            print(f'Performing API PUT to: {url}')
+                            status_code = r.status_code
+                            json_resp = r.json()
+                            if (status_code == 200):
+                                print(f'Items Processing... View Output File For Full Change Log... {filename}')
+                                with open(filename, 'a') as OutFile:
+                                    OutFile.write(json.dumps(json_resp,indent=4))
+                            else:
+                                print(f'Status code:--> {status_code}')
+                                print(f'Error occurred in PUT --> {json.dumps(json_resp,indent=4)}')
+                                r.raise_for_status()
+
+
+                        except requests.exceptions.HTTPError:
+                            print (f'Error in connection --> {traceback.format_exc()}')
+
+                    else:
+                        print (f'Error in connection --> {traceback.format_exc()}')
             # End
             finally:
                 if r: r.close()
