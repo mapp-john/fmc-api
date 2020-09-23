@@ -9,6 +9,7 @@ import random
 import netaddr
 import getpass
 import requests
+import traceback
 
 
 #
@@ -41,7 +42,8 @@ def AccessToken(server,headers,username,password):
             print('auth_token not found. Exiting...')
             sys.exit()
     except Exception as err:
-        print (f'Error in generating auth token --> {err}')
+        print (f'Error in generating auth token --> {traceback.format_exc()}')
+        print(r.headers)
         sys.exit()
     return auth_token,domains
 
