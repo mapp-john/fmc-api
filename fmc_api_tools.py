@@ -16,7 +16,8 @@ from fmc_api_modules import \
         define_password,\
         AccessToken,\
         GetDeviceDetails,\
-        GetNetObjectUUID
+        GetNetObjectUUID, \
+        listToString
 
 #
 #
@@ -1268,9 +1269,10 @@ def GetInventory(server,headers,username,password):
         url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords?offset=0&limit=1000&expanded=true'
         r = requests.get(url, headers=headers, verify=False)
         status_code = r.status_code
-        print(f'Status code is: {status_code}')
+        print(f'1 - Status code is: {status_code}')
         DEVICELIST_DATA = r.json()
         json_resp = r.json()
+        #print(f'Json: {json_resp}')
         if status_code == 200:
             while 'next' in json_resp['paging']:
                 url_get = json_resp['paging']['next'][0]
@@ -1279,7 +1281,7 @@ def GetInventory(server,headers,username,password):
                     # REST call with SSL verification turned off
                     r = requests.get(url_get, headers=headers, verify=False)
                     status_code = r.status_code
-                    print(f'Status code is: {status_code}')
+                    print(f'2 - Status code is: {status_code}')
                     json_resp = r.json()
                     if status_code == 200:
                         # Loop for First Page of Items
@@ -1384,9 +1386,15 @@ def GetInventory(server,headers,username,password):
             temp_dict = {}
             temp_dict['name'] = item['name']
             temp_dict['model'] = item['model']
+            temp_dict['hostname'] = item['hostName']
             temp_dict['healthStatus'] = item['healthStatus']
             temp_dict['sw_version'] = item['sw_version']
             temp_dict['license_caps'] = item['license_caps']
+            temp_dict['ftdMode'] = item['ftdMode']
+            temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
+            temp_dict['sru_version'] = item['metadata']['sruVersion']
+            temp_dict['vdb_version'] = item['metadata']['vdbVersion']
+            temp_dict['snort_version'] = item['metadata']['snortVersion']
             if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
             INVENTORY['devices'].append(temp_dict)
 
@@ -1412,7 +1420,7 @@ def GetInventory(server,headers,username,password):
         filename += '.csv'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
-            OutFile.write('NAME,MODEL,VERSION,STATUS,CHASSIS_SERIAL\n')
+            OutFile.write('NAME,MODEL,HOSTNAME,VERSION,LICENSE,STATUS,CHASSIS_SERIAL,MODE,SRU,VDB,SNORT\n')
             if INVENTORY['deviceClusters'] != []:
                 for item in INVENTORY['deviceClusters']:
                     serial = ''
@@ -1448,13 +1456,20 @@ def GetInventory(server,headers,username,password):
                     OutFile.write(f'{name},{model},{version},{status},{serial}\n')
             if INVENTORY['devices'] != []:
                 for item in INVENTORY['devices']:
-                    serial = ''
+                    serial = item['deviceSerialNumber']
                     name = item['name']
                     model = item['model']
+                    hostname = item['hostname']
                     version = item['sw_version']
+                    license = item['license_caps']  
                     status = item['healthStatus']
-                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
-                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    mode = item['ftdMode']
+                    sru_version = item['sru_version']
+                    vdb_version = item['vdb_version']
+                    snort_version = item['snort_version']
+                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']                   
+                    str_license = listToString(license) # Grab the elements in the license object and conver to a string
+                    OutFile.write(f'{name},{model},{hostname},{version},{str_license},{status},{serial},{mode},{sru_version},{vdb_version},{snort_version}\n')
 
 
 #

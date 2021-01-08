@@ -152,4 +152,20 @@ def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
             # Pull Object UUID from json_resp data
             ObjectID = item['id']
     return ObjectID
+#
+#
+#
+# Convert list elements to string, separating elements with semicolon (;)
+def listToString(s):  
+    
+    # initialize an empty string 
+    str1 = ""  
+    
+    # traverse in the string   
+    for ele in s:  
+        str1 += ele
+        str1 += "; "   
+    
+    # return string   
+    return str1  
 
