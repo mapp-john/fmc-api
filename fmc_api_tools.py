@@ -1390,8 +1390,10 @@ def GetInventory(server,headers,username,password):
             temp_dict['healthStatus'] = item['healthStatus']
             temp_dict['sw_version'] = item['sw_version']
             temp_dict['license_caps'] = item['license_caps']
-            temp_dict['ftdMode'] = item['ftdMode']
-            temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
+            temp_dict['ftdMode'] = ''
+            if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
+            temp_dict['deviceSerialNumber'] = ''
+            if 'deviceSerialNumber' in item: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
             temp_dict['sru_version'] = item['metadata']['sruVersion']
             temp_dict['vdb_version'] = item['metadata']['vdbVersion']
             temp_dict['snort_version'] = item['metadata']['snortVersion']
@@ -1461,13 +1463,14 @@ def GetInventory(server,headers,username,password):
                     model = item['model']
                     hostname = item['hostname']
                     version = item['sw_version']
-                    license = item['license_caps']  
+                    license = item['license_caps']
                     status = item['healthStatus']
-                    mode = item['ftdMode']
+                    mode = ''
+                    if 'ftdMode' in item: mode = item['ftdMode']
                     sru_version = item['sru_version']
                     vdb_version = item['vdb_version']
                     snort_version = item['snort_version']
-                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']                   
+                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
                     str_license = listToString(license) # Grab the elements in the license object and conver to a string
                     OutFile.write(f'{name},{model},{hostname},{version},{str_license},{status},{serial},{mode},{sru_version},{vdb_version},{snort_version}\n')
 
