@@ -1468,10 +1468,14 @@ def GetInventory(server,headers,username,password):
                     license = item['license_caps']
                     status = item['healthStatus']
                     mode = ''
+                    sru_version = ''
+                    vdb_version = ''
+                    snort_version = ''
+                    serial = ''
                     if 'ftdMode' in item: mode = item['ftdMode']
-                    sru_version = item['sru_version']
-                    vdb_version = item['vdb_version']
-                    snort_version = item['snort_version']
+                    if 'sru_version' in item: sru_version = item['sru_version']
+                    if 'vdb_version' in item: vdb_version = item['vdb_version']
+                    if 'snort_version' in item: snort_version = item['snort_version']
                     if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
                     str_license = listToString(license) # Grab the elements in the license object and conver to a string
                     OutFile.write(f'{name},{model},{hostname},{version},{str_license},{status},{serial},{mode},{sru_version},{vdb_version},{snort_version}\n')
