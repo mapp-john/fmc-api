@@ -12,7 +12,7 @@ import os,\
         traceback
 
 # Import custom modules from file
-from fmc_api_modules import \
+from fmc_api_module import \
         define_password,\
         AccessToken,\
         GetDeviceDetails,\
@@ -1353,8 +1353,10 @@ def GetInventory(server,headers,username,password):
     except requests.exceptions.HTTPError as err:
         print (f'Error in connection --> {err}')
 
-    ## TEST PRINT
-    #print(json.dumps(HA_DATA,indent=4))
+    # TEST PRINT
+    print(json.dumps(DEVICELIST_DATA,indent=4))
+    print(json.dumps(CLUSTER_DATA,indent=4))
+    print(json.dumps(HA_DATA,indent=4))
 
     # Create Base Dict
     INVENTORY = {
@@ -1394,9 +1396,9 @@ def GetInventory(server,headers,username,password):
             if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
             temp_dict['deviceSerialNumber'] = ''
             if 'deviceSerialNumber' in item: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
-            temp_dict['sru_version'] = item['metadata']['sruVersion']
-            temp_dict['vdb_version'] = item['metadata']['vdbVersion']
-            temp_dict['snort_version'] = item['metadata']['snortVersion']
+            if 'sru_version' in item: temp_dict['sru_version'] = item['metadata']['sruVersion']
+            if 'vdb_version' in item: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
+            if 'snort_version' in item: temp_dict['snort_version'] = item['metadata']['snortVersion']
             if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
             INVENTORY['devices'].append(temp_dict)
 
