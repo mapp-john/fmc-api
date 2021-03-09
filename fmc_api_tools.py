@@ -7,6 +7,7 @@ import os,\
         socket,\
         random,\
         netaddr,\
+        netmiko,\
         getpass,\
         requests,\
         traceback
@@ -17,7 +18,8 @@ from fmc_api_module import \
         AccessToken,\
         GetDeviceDetails,\
         GetNetObjectUUID, \
-        listToString
+        listToString,\
+        Select
 
 #
 #
@@ -1353,10 +1355,10 @@ def GetInventory(server,headers,username,password):
     except requests.exceptions.HTTPError as err:
         print (f'Error in connection --> {err}')
 
-    # TEST PRINT
-    print(json.dumps(DEVICELIST_DATA,indent=4))
-    print(json.dumps(CLUSTER_DATA,indent=4))
-    print(json.dumps(HA_DATA,indent=4))
+    ## TEST PRINT
+    #print(json.dumps(DEVICELIST_DATA,indent=4))
+    #print(json.dumps(CLUSTER_DATA,indent=4))
+    #print(json.dumps(HA_DATA,indent=4))
 
     # Create Base Dict
     INVENTORY = {
@@ -1481,6 +1483,148 @@ def GetInventory(server,headers,username,password):
                     OutFile.write(f'{name},{model},{hostname},{version},{str_license},{status},{serial},{mode},{sru_version},{vdb_version},{snort_version}\n')
 
 
+
+
+
+#
+#
+#
+# Define Inventory List Script as Funtion
+def RegisterFTD(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                                   Register FTD to FMC                                       *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    print('Generating Access Token')
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+
+    Test = False
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['uuid']
+
+
+    # Create Get DATA JSON Dictionary to collect all ACP names
+    print('*\n*\nCOLLECTING Access Policies...')
+    try:
+        # REST call with SSL verification turned off
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?offset=0&limit=1000'
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        acp_list = r.json()['items']
+        json_resp = r.json()
+        #print(f'Json: {json_resp}')
+        if status_code == 200:
+            while 'next' in json_resp['paging']:
+                url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT PAGE... {url_get}')
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            acp_list.append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {err}')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {err}')
+
+
+    acp = Select('Access Control Policy',acp_list)
+    #print(json.dumps(acp,indent=4))
+
+
+    # Request FTD Details
+    FTD_IP = input('Please enter FTD IP Address: ').strip()
+    FTD_name = input('Please enter FTD display name: ').strip()
+    FTD_user = input('Please enter FTD username: ').strip()
+    FTD_pass = define_password()
+
+    regKey = input('Please enter random registration key: ').strip()
+
+    post_data = {
+        'name': FTD_name,
+        'hostName': FTD_IP,
+        'natID': 'cisco123',
+        'regKey': regKey,
+        'type': 'Device',
+        'license_caps': [
+            'BASE',
+            'MALWARE',
+            'URLFilter',
+            'THREAT'
+        ],
+        'accessPolicy': {
+            'id': acp['id'],
+            'type': 'AccessPolicy'
+        }
+    }
+
+
+    url =f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords'
+    print(f'\nPerforming API POST to: {url}...\n')
+    try:
+        # REST call with SSL verification turned off:
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('FMC Registration Post successful...')
+            json_resp = r.json()
+        else :
+            r.raise_for_status()
+            print ('Error occurred in POST --> {resp}')
+    except requests.exceptions.HTTPError as err:
+        print ('Error in connection --> {err}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
+
+    try:
+        # Connect to FTD, and initiate registration
+        print('\nConnecting to FTD for CLI registration...')
+        connection = netmiko.ConnectHandler(ip=FTD_IP, device_type='autodetect', username=FTD_user, password=FTD_pass, global_delay_factor=6)
+        output = connection.send_command(f'configure manager add {server.replace("https://","")} {regKey} cisco123')
+        connection.disconnect()
+        print('FTD Registration command successful...')
+    except:
+        print ('Error in SSH connection --> {traceback.format_exc()}')
+        connection.disconnect()
+
+
+
+
+
+
+
+
+
+
 #
 #
 #
@@ -1543,13 +1687,15 @@ if __name__ == "__main__":
 *                                                                                             *
 *  1. Basic URL GET                                                                           *
 *                                                                                             *
-*  2. Create Network-Objects in bulk (POST)                                                   *
+*  2. Create Network-Objects in bulk                                                          *
 *                                                                                             *
-*  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
+*  3. Create Network-Objects in bulk and add to New Object-Group                              *
 *                                                                                             *
-*  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
+*  4. Update IPS and/or File Policy for Access Rules                                          *
 *                                                                                             *
-*  5. Get Inventory List from FMC (GET)                                                       *
+*  5. Get Inventory List from FMC                                                             *
+*                                                                                             *
+*  6. Register FTD to FMC                                                                     *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1577,6 +1723,9 @@ if __name__ == "__main__":
             elif script == '5':
                 Script = True
                 GetInventory(server,headers,username,password)
+            elif script == '6':
+                Script = True
+                RegisterFTD(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1588,13 +1737,15 @@ if __name__ == "__main__":
 *                                                                                             *
 *  1. Basic URL GET                                                                           *
 *                                                                                             *
-*  2. Create Network-Objects in bulk (POST)                                                   *
+*  2. Create Network-Objects in bulk                                                          *
 *                                                                                             *
-*  3. Create Network-Objects in bulk and add to New Object-Group (POST)                       *
+*  3. Create Network-Objects in bulk and add to New Object-Group                              *
 *                                                                                             *
-*  4. Update IPS and/or File Policy for Access Rules (PUT)                                    *
+*  4. Update IPS and/or File Policy for Access Rules                                          *
 *                                                                                             *
-*  5. Get Inventory List from FMC (GET)                                                       *
+*  5. Get Inventory List from FMC                                                             *
+*                                                                                             *
+*  6. Register FTD to FMC                                                                     *
 *                                                                                             *
 ***********************************************************************************************
 ''')
