@@ -10,7 +10,9 @@ import os,\
         netmiko,\
         getpass,\
         requests,\
+        warnings,\
         traceback
+from datetime import datetime
 
 # Import custom modules from file
 from fmc_api_module import \
@@ -19,7 +21,11 @@ from fmc_api_module import \
         GetDeviceDetails,\
         GetNetObjectUUID, \
         listToString,\
-        Select
+        Select,\
+        GetItems
+
+# Disable SSL warning
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 #
 #
@@ -1521,48 +1527,22 @@ def RegisterFTD(server,headers,username,password):
     else:
         API_UUID = domains[0]['uuid']
 
-
-    # Create Get DATA JSON Dictionary to collect all ACP names
-    print('*\n*\nCOLLECTING Access Policies...')
-    try:
-        # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?offset=0&limit=1000'
-        r = requests.get(url, headers=headers, verify=False)
-        status_code = r.status_code
-        acp_list = r.json()['items']
-        json_resp = r.json()
-        #print(f'Json: {json_resp}')
-        if status_code == 200:
-            while 'next' in json_resp['paging']:
-                url_get = json_resp['paging']['next'][0]
-                print(f'*\n*\nCOLLECTING NEXT PAGE... {url_get}')
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            acp_list.append(item)
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
-
-
-    acp = Select('Access Control Policy',acp_list)
-    #print(json.dumps(acp,indent=4))
-
-
     # Request FTD Details
     FTD_IP = input('Please enter FTD IP Address: ').strip()
     FTD_name = input('Please enter FTD display name: ').strip()
     FTD_user = input('Please enter FTD username: ').strip()
     FTD_pass = define_password()
+    # Generate random Registration Key
+    regKey = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
 
-    regKey = input('Please enter random registration key: ').strip()
+    # Create Get DATA JSON Dictionary to collect all ACP names
+    print('*\n*\nCOLLECTING Access Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?offset=0&limit=1000'
+    acp_list = GetItems(url,headers)
+
+
+    acp = Select('Access Control Policy',acp_list)
+    #print(json.dumps(acp,indent=4))
 
     post_data = {
         'name': FTD_name,
@@ -1598,7 +1578,7 @@ def RegisterFTD(server,headers,username,password):
             r.raise_for_status()
             print ('Error occurred in POST --> {resp}')
     except requests.exceptions.HTTPError as err:
-        print ('Error in connection --> {err}')
+        print ('Error in connection --> {traceback.format_exc()}')
     finally:
         try:
             if r: r.close()
@@ -1618,10 +1598,155 @@ def RegisterFTD(server,headers,username,password):
 
 
 
+#
+#
+#
+# Define Inventory List Script as Funtion
+def Prefilter2ACP(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                    Convert Prefilter rules to Access-Control rules                          *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    print('Generating Access Token')
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+
+    Test = False
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['uuid']
+
+
+    # Get all Access Control Policies
+    print('*\n*\nCOLLECTING Access Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    acp_list = GetItems(url,headers)
+
+    acp = Select('Access Control Policy',acp_list)
+    #print(json.dumps(acp,indent=4))
+
+    # Get Prefilter Policy
+    print('*\n*\nCOLLECTING Prefilter Policy...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
+    prefilter_list = GetItems(url,headers)
+
+    # Get all Intrusion Policies
+    print('*\n*\nCOLLECTING Intusion Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/intrusionpolicies?offset=0&limit=1000'
+    ips_list = GetItems(url,headers)
+    # Add None option
+    ips_list.append({'None':'None'})
+    ips = Select('Intusion Policy',ips_list)
+
+    if ips != 'None':
+        # Get all Variable Sets
+        print('*\n*\nCOLLECTING Variable Sets...')
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
+        vset_list = GetItems(url,headers)
+        vset = Select('Variable Policy',vset_list)
+    else:
+        vset = 'None'
+
+    # Get all Variable Sets
+    print('*\n*\nCOLLECTING File Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/filepolicies?offset=0&limit=1000'
+    file_list = GetItems(url,headers)
+    # Add None option
+    file_list.append({'None':'None'})
+    filepolicy = Select('File Policy',file_list)
+    #print(filepolicy)
+
+    # Migrate prefilter rules to Access Rules
+    acp_data = []
+    DATE = datetime.now().strftime('%Y-%m-%d_%H%M')
+
+    for item in prefilter_list:
+        item['name']  =  f'Prefilter_{item["name"]}_{DATE}'
+        if len(item['name']) > 50:
+            item['newComments'] = [item['name']]
+            item['name'] = item['name'][:50]
+        if 'id' in item: del item['id']
+        if 'metadata' in item: del item["metadata"]
+        if 'links' in item: del item["links"]
+        if 'bidirectional' in item: del item["bidirectional"]
+        if 'sourceInterfaces' in item:
+            item['sourceZones'] = item['sourceInterfaces']
+            del item['sourceInterfaces']
+        if 'destinationInterfaces' in item:
+            item['destinationZones'] = item['destinationInterfaces']
+            del item['destinationInterfaces']
+        if 'bidirectional' in item: del item["bidirectional"]
+        if (item['action'] == 'ANALYZE') and (item['ruleType'] !='TUNNEL'):
+            item['logFiles'] = False
+            item['action'] = 'ALLOW'
+            item['type'] ='AccessRule'
+            if ips != 'None':
+                item['ipsPolicy'] = ips
+                item['ipsPolicy']['type'] = 'IntrusionPolicy'
+                item['variableSet'] = vset
+                item['variableSet']['type'] = 'VariableSet'
+            if filepolicy != 'None':
+                item['logFiles'] = True
+                item['sendEventsToFMC'] = True
+                item['filePolicy'] = filepolicy
+                item['filePolicy']['type'] = 'FilePolicy'
+            del item['ruleType']
+            acp_data.append(item)
+        elif item['action'] =='BLOCK':
+            item['logFiles'] = False
+            item['type'] ='AccessRule'
+            item['variableSet'] = default_vset
+            del item["ruleType"]
+            acp_data.append(item)
+        elif item['action'] =='FASTPATH':
+            item['logFiles'] = False
+            item['logBegin'] = False
+            item['action'] ='TRUST'
+            item['type'] ='AccessRule'
+            del item['ruleType']
+            acp_data.append(item)
 
 
 
-
+    # Post newly migrated access rules
+    print('*\n*\nPosting new Access Rules...')
+    url =f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?bulk=true'
+    print(f'\nPerforming API POST to: {url}...\n')
+    try:
+        # REST call with SSL verification turned off:
+        r = requests.post(url, data=json.dumps(acp_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('FMC Access Rules Post successful...')
+        else :
+            print (f'Error occurred in POST --> {resp}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
 
 
 
@@ -1697,6 +1822,8 @@ if __name__ == "__main__":
 *                                                                                             *
 *  6. Register FTD to FMC                                                                     *
 *                                                                                             *
+*  7. Migrate Prefilter rules to Access Rules                                                 *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1726,6 +1853,9 @@ if __name__ == "__main__":
             elif script == '6':
                 Script = True
                 RegisterFTD(server,headers,username,password)
+            elif script == '7':
+                Script = True
+                Prefilter2ACP(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1747,8 +1877,10 @@ if __name__ == "__main__":
 *                                                                                             *
 *  6. Register FTD to FMC                                                                     *
 *                                                                                             *
+*  7. Migrate Prefilter rules to Access Rules                                                 *
+*                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7']):
             break

@@ -181,7 +181,7 @@ def Select(opt,L):
     counter = 0
     for item in L:
         counter += 1
-        if item == 'None':
+        if 'None' in item:
             options.update({str(counter):{'key':'None', 'value':'None'}})
         else:
             options.update({str(counter):{'key':item['name'],'value':item}})
@@ -198,6 +198,47 @@ def Select(opt,L):
         elif option in options:
             return options[option]['value']
         print('Invalid selection....\n')
+
+
+
+
+
+#
+#
+#
+# Collects and returns items from all pages
+def GetItems(url,headers):
+    try:
+        # REST call with SSL verification turned off
+        r = requests.get(url, headers=headers, verify=False)
+        status_code = r.status_code
+        #print(json.dumps(r.json(),indent=4))
+        try:
+            temp_list = r.json()['items']
+        except:
+            return [{'None':'None'}]
+        json_resp = r.json()
+        #print(f'Json: {json_resp}')
+        if status_code == 200:
+            while 'next' in json_resp['paging']:
+                url_get = json_resp['paging']['next'][0]
+                print(f'*\n*\nCOLLECTING NEXT PAGE... {url_get}')
+                try:
+                    # REST call with SSL verification turned off
+                    r = requests.get(url_get, headers=headers, verify=False)
+                    status_code = r.status_code
+                    json_resp = r.json()
+                    if status_code == 200:
+                        # Loop for First Page of Items
+                        for item in json_resp['items']:
+                            # Append Items to New Dictionary
+                            temp_list.append(item)
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {traceback.format_exc()}')
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    return temp_list
+
 
 
 
