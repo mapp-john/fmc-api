@@ -52,18 +52,22 @@ def AccessToken(server,headers,username,password):
 # Get Device Details from Inventory List
 # And Delete item from Inventory List
 def GetDeviceDetails(ID,DeviceList):
-  temp_dict = {}
-  for item in DeviceList:
-    if item['id']==ID:
-      temp_dict['name'] = item['name']
-      temp_dict['model'] = item['model']
-      temp_dict['healthStatus'] = item['healthStatus']
-      temp_dict['sw_version'] = item['sw_version']
-      temp_dict['license_caps'] = item['license_caps']
-      if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-      # Delete item from Device List
-      DeviceList.pop(DeviceList.index(item))
-  return temp_dict
+    temp_dict = {}
+    for item in DeviceList:
+        if item['id']==ID:
+          temp_dict['name'] = item['name']
+          temp_dict['model'] = item['model']
+          temp_dict['healthStatus'] = item['healthStatus']
+          temp_dict['sw_version'] = item['sw_version']
+          temp_dict['license_caps'] = item['license_caps']
+          if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
+          if 'sruVersion' in item['metadata']: temp_dict['sru_version'] = item['metadata']['sruVersion']
+          if 'vdbVersion' in item['metadata']: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
+          if 'snortVersion' in item['metadata']: temp_dict['snort_version'] = item['metadata']['snortVersion']
+          if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
+          # Delete item from Device List
+          DeviceList.pop(DeviceList.index(item))
+    return temp_dict
 
 
 #
@@ -157,28 +161,12 @@ def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
 #
 #
 #
-# Convert list elements to string, separating elements with semicolon (;)
-def listToString(s):
-
-    # initialize an empty string
-    str1 = ""
-
-    # traverse in the string
-    for ele in s:
-        str1 += ele
-        str1 += "; "
-
-    # return string
-    return str1
-
-
-#
-#
-#
 # Prompt user to select from options, returns selection\
 def Select(opt,L):
     options = {}
     counter = 0
+    if L == []:
+        L.append({'None':'None'})
     for item in L:
         counter += 1
         if 'None' in item:
@@ -216,7 +204,7 @@ def GetItems(url,headers):
         try:
             temp_list = r.json()['items']
         except:
-            return [{'None':'None'}]
+            return []
         json_resp = r.json()
         #print(f'Json: {json_resp}')
         if status_code == 200:

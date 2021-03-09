@@ -20,7 +20,6 @@ from fmc_api_module import \
         AccessToken,\
         GetDeviceDetails,\
         GetNetObjectUUID, \
-        listToString,\
         Select,\
         GetItems
 
@@ -1263,103 +1262,21 @@ def GetInventory(server,headers,username,password):
     else:
         API_UUID = domains[0]['uuid']
 
-        ## Request API URI Path
-        #API_UUID = input('Please Enter FMC Domain UUID: ').lower().strip()
-        #if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', API_UUID):
-        #    Test=True
-        #else:
-        #    print('Invalid UUID...')
-
-    # Create Get DATA JSON Dictionary to collect data from GET calls
+    # Get all Devices
     print('*\n*\nCOLLECTING ALL INVENTORY...')
-    try:
-        # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords?offset=0&limit=1000&expanded=true'
-        r = requests.get(url, headers=headers, verify=False)
-        status_code = r.status_code
-        print(f'1 - Status code is: {status_code}')
-        DEVICELIST_DATA = r.json()
-        json_resp = r.json()
-        #print(f'Json: {json_resp}')
-        if status_code == 200:
-            while 'next' in json_resp['paging']:
-                url_get = json_resp['paging']['next'][0]
-                print(f'*\n*\nCOLLECTING NEXT INVENTORY PAGE... {url_get}')
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    print(f'2 - Status code is: {status_code}')
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            DEVICELIST_DATA['items'].append(item)
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords?expanded=true&offset=0&limit=1000'
+    DEVICELIST_DATA = GetItems(url,headers)
 
-    # Create Get DATA JSON Dictionary to collect data from GET calls
+    # Get all Cluster Devices
     print('*\n*\nCOLLECTING CLUSTER INVENTORY...')
-    try:
-        # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deviceclusters/ftddevicecluster?offset=0&limit=1000&expanded=true'
-        r = requests.get(url, headers=headers, verify=False)
-        status_code = r.status_code
-        print(f'Status code is: {status_code}')
-        CLUSTER_DATA = r.json()
-        json_resp = r.json()
-        if status_code == 200:
-            while 'next' in json_resp['paging']:
-                url_get = json_resp['paging']['next'][0]
-                print(f'*\n*\nCOLLECTING NEXT CLUSTER INVENTORY PAGE... {url_get}')
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    print(f'Status code is: {status_code}')
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            CLUSTER_DATA['items'].append(item)
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deviceclusters/ftddevicecluster?expanded=true&offset=0&limit=1000'
+    CLUSTER_DATA = GetItems(url,headers)
 
-    # Create Get DATA JSON Dictionary to collect data from GET calls
+    # Get all HA Devices
     print('*\n*\nCOLLECTING HA PAIR INVENTORY...')
-    try:
-        # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devicehapairs/ftddevicehapairs?offset=0&limit=1000&expanded=true'
-        r = requests.get(url, headers=headers, verify=False)
-        status_code = r.status_code
-        print(f'Status code is: {status_code}')
-        HA_DATA = r.json()
-        json_resp = r.json()
-        if status_code == 200:
-            while 'next' in json_resp['paging']:
-                url_get = json_resp['paging']['next'][0]
-                print(f'*\n*\nCOLLECTING NEXT HA PAIR INVENTORY PAGE... {url_get}')
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    print(f'Status code is: {status_code}')
-                    json_resp = r.json()
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            HA_DATA['items'].append(item)
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devicehapairs/ftddevicehapairs?expanded=true&offset=0&limit=1000'
+    HA_DATA = GetItems(url,headers)
+
 
     ## TEST PRINT
     #print(json.dumps(DEVICELIST_DATA,indent=4))
@@ -1373,26 +1290,26 @@ def GetInventory(server,headers,username,password):
         'devices':[]
         }
 
-    if 'items' in CLUSTER_DATA:
-        for item in CLUSTER_DATA['items']:
+    if CLUSTER_DATA != []:
+        for item in CLUSTER_DATA:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['masterDevice'] = GetDeviceDetails(item['masterDevice']['id'],DEVICELIST_DATA['items'])
+            temp_dict['masterDevice'] = GetDeviceDetails(item['masterDevice']['id'],DEVICELIST_DATA)
             temp_dict['slaveDevices'] = []
             for item in item['slaveDevices']:
-                temp_dict['slaveDevices'].append(GetDeviceDetails(item['id'],DEVICELIST_DATA['items']))
+                temp_dict['slaveDevices'].append(GetDeviceDetails(item['id'],DEVICELIST_DATA))
             INVENTORY['deviceClusters'].append(temp_dict)
 
-    if 'items' in HA_DATA:
-        for item in HA_DATA['items']:
+    if HA_DATA != []:
+        for item in HA_DATA:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['primary'] = GetDeviceDetails(item['primary']['id'],DEVICELIST_DATA['items'])
-            temp_dict['secondary'] = GetDeviceDetails(item['secondary']['id'],DEVICELIST_DATA['items'])
+            temp_dict['primary'] = GetDeviceDetails(item['primary']['id'],DEVICELIST_DATA)
+            temp_dict['secondary'] = GetDeviceDetails(item['secondary']['id'],DEVICELIST_DATA)
             INVENTORY['deviceHAPairs'].append(temp_dict)
 
-    if 'items' in DEVICELIST_DATA:
-        for item in DEVICELIST_DATA['items']:
+    if DEVICELIST_DATA != []:
+        for item in DEVICELIST_DATA:
             temp_dict = {}
             temp_dict['name'] = item['name']
             temp_dict['model'] = item['model']
@@ -1403,15 +1320,15 @@ def GetInventory(server,headers,username,password):
             temp_dict['ftdMode'] = ''
             if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
             temp_dict['deviceSerialNumber'] = ''
-            if 'deviceSerialNumber' in item: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
-            if 'sru_version' in item: temp_dict['sru_version'] = item['metadata']['sruVersion']
-            if 'vdb_version' in item: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
-            if 'snort_version' in item: temp_dict['snort_version'] = item['metadata']['snortVersion']
+            if 'deviceSerialNumber' in item['metadata']: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
+            if 'sruVersion' in item['metadata']: temp_dict['sru_version'] = item['metadata']['sruVersion']
+            if 'vdbVersion' in item['metadata']: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
+            if 'snortVersion' in item['metadata']: temp_dict['snort_version'] = item['metadata']['snortVersion']
             if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
             INVENTORY['devices'].append(temp_dict)
 
 
-    print('FMC Inventory compilation successful...')
+    print('*\n*\nFMC Inventory compilation successful...')
     # Ask if JSON output should be saved to File
     save = input('Would You Like To Save The JSON Output To File? [y/N]: ').lower()
     if save in (['yes','ye','y']):
@@ -1432,40 +1349,82 @@ def GetInventory(server,headers,username,password):
         filename += '.csv'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
-            OutFile.write('NAME,MODEL,HOSTNAME,VERSION,LICENSE,STATUS,CHASSIS_SERIAL,MODE,SRU,VDB,SNORT\n')
+            OutFile.write('NAME,MODEL,VERSION,STATUS,SERIAL,MODE,LICENSE,SRU,VDB,SNORT\n')
             if INVENTORY['deviceClusters'] != []:
                 for item in INVENTORY['deviceClusters']:
+                    mode = ''
+                    sru_version = ''
+                    vdb_version = ''
+                    snort_version = ''
                     serial = ''
                     name = item['masterDevice']['name']
                     model = item['masterDevice']['model']
                     version = item['masterDevice']['sw_version']
                     status = item['masterDevice']['healthStatus']
+                    license = ';'.join(item['masterDevice']['license_caps'])
+                    if 'ftdMode' in item['masterDevice']: mode = item['masterDevice']['ftdMode']
+                    if 'sru_version' in item['masterDevice']: sru_version = item['masterDevice']['sru_version']
+                    if 'vdb_version' in item['masterDevice']: vdb_version = item['masterDevice']['vdb_version']
+                    if 'snort_version' in item['masterDevice']: snort_version = item['masterDevice']['snort_version']
                     if 'chassisData' in item['masterDevice']: serial = item['masterDevice']['chassisData']['chassisSerialNo']
-                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
                     for item in item['slaveDevices']:
+                        mode = ''
+                        sru_version = ''
+                        vdb_version = ''
+                        snort_version = ''
                         serial = ''
                         name = item['name']
                         model = item['model']
                         version = item['sw_version']
                         status = item['healthStatus']
+                        license = ';'.join(item['license_caps'])
+                        if 'ftdMode' in item: mode = item['ftdMode']
+                        if 'sru_version' in item: sru_version = item['sru_version']
+                        if 'vdb_version' in item: vdb_version = item['vdb_version']
+                        if 'snort_version' in item: snort_version = item['snort_version']
                         if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
-                        OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                        OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
             if INVENTORY['deviceHAPairs'] != []:
                 for item in INVENTORY['deviceHAPairs']:
+                    mode = ''
+                    sru_version = ''
+                    vdb_version = ''
+                    snort_version = ''
                     serial = ''
                     name = item['primary']['name']
                     model = item['primary']['model']
                     version = item['primary']['sw_version']
                     status = item['primary']['healthStatus']
-                    if 'chassisData' in item['primary']: serial = item['primary']['chassisData']['chassisSerialNo']
-                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    license = ';'.join(item['primary']['license_caps'])
+                    if 'ftdMode' in item['primary']: mode = item['primary']['ftdMode']
+                    if 'sru_version' in item['primary']: sru_version = item['primary']['sru_version']
+                    if 'vdb_version' in item['primary']: vdb_version = item['primary']['vdb_version']
+                    if 'snort_version' in item['primary']: snort_version = item['primary']['snort_version']
+                    if 'chassisData' in item['primary']:
+                        serial = item['primary']['chassisData']['chassisSerialNo']
+                    elif 'deviceSerialNumber' in item['primary']:
+                        serial = item['primary']['deviceSerialNumber']
+                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
+                    mode = ''
+                    sru_version = ''
+                    vdb_version = ''
+                    snort_version = ''
                     serial = ''
                     name = item['secondary']['name']
                     model = item['secondary']['model']
                     version = item['secondary']['sw_version']
                     status = item['secondary']['healthStatus']
-                    if 'chassisData' in item['secondary']: serial = item['secondary']['chassisData']['chassisSerialNo']
-                    OutFile.write(f'{name},{model},{version},{status},{serial}\n')
+                    license = ';'.join(item['secondary']['license_caps'])
+                    if 'ftdMode' in item['secondary']: mode = item['secondary']['ftdMode']
+                    if 'sru_version' in item['secondary']: sru_version = item['secondary']['sru_version']
+                    if 'vdb_version' in item['secondary']: vdb_version = item['secondary']['vdb_version']
+                    if 'snort_version' in item['secondary']: snort_version = item['secondary']['snort_version']
+                    if 'chassisData' in item['secondary']:
+                        serial = item['secondary']['chassisData']['chassisSerialNo']
+                    elif 'deviceSerialNumber' in item['secondary']:
+                        serial = item['secondary']['deviceSerialNumber']
+                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
             if INVENTORY['devices'] != []:
                 for item in INVENTORY['devices']:
                     serial = item['deviceSerialNumber']
@@ -1473,7 +1432,7 @@ def GetInventory(server,headers,username,password):
                     model = item['model']
                     hostname = item['hostname']
                     version = item['sw_version']
-                    license = item['license_caps']
+                    license = ';'.join(item['license_caps'])
                     status = item['healthStatus']
                     mode = ''
                     sru_version = ''
@@ -1484,9 +1443,11 @@ def GetInventory(server,headers,username,password):
                     if 'sru_version' in item: sru_version = item['sru_version']
                     if 'vdb_version' in item: vdb_version = item['vdb_version']
                     if 'snort_version' in item: snort_version = item['snort_version']
-                    if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
-                    str_license = listToString(license) # Grab the elements in the license object and conver to a string
-                    OutFile.write(f'{name},{model},{hostname},{version},{str_license},{status},{serial},{mode},{sru_version},{vdb_version},{snort_version}\n')
+                    if 'chassisData' in item:
+                        serial = item['chassisData']['chassisSerialNo']
+                    elif 'deviceSerialNumber' in item:
+                        serial = item['deviceSerialNumber']
+                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
 
 
 
