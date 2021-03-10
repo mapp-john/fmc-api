@@ -1463,6 +1463,16 @@ def RegisterFTD(server,headers,username,password):
 *                                   Register FTD to FMC                                       *
 *_____________________________________________________________________________________________*
 *                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FTD IP address                                                                          *
+*                                                                                             *
+*  2. FTD display name                                                                        *
+*                                                                                             *
+*  3. FTD CLI username and password                                                           *
+*                                                                                             *
+*  4. Select ACP to apply to FTD                                                              *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1569,6 +1579,14 @@ def Prefilter2ACP(server,headers,username,password):
 *                    Convert Prefilter rules to Access-Control rules                          *
 *_____________________________________________________________________________________________*
 *                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. Select Access Policy                                                                    *
+*                                                                                             *
+*  2. Select Intrusion Policy and Variable Set to apply to ALL converted rules                *
+*                                                                                             *
+*  3. Select File Policy to apply to ALL converted rules                                      *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1604,7 +1622,7 @@ def Prefilter2ACP(server,headers,username,password):
     #print(json.dumps(acp,indent=4))
 
     # Get Prefilter Policy
-    print('*\n*\nCOLLECTING Prefilter Policy...')
+    print('*\n*\nCOLLECTING Applied Prefilter Policy...')
     url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
     prefilter_list = GetItems(url,headers)
 
@@ -1616,14 +1634,14 @@ def Prefilter2ACP(server,headers,username,password):
     ips_list.append({'None':'None'})
     ips = Select('Intusion Policy',ips_list)
 
-    if ips != 'None':
+    if ips:
         # Get all Variable Sets
         print('*\n*\nCOLLECTING Variable Sets...')
         url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
         vset_list = GetItems(url,headers)
-        vset = Select('Variable Policy',vset_list)
+        vset = Select('Variable Set',vset_list)
     else:
-        vset = 'None'
+        vset = None
 
     # Get all Variable Sets
     print('*\n*\nCOLLECTING File Policies...')
@@ -1635,6 +1653,7 @@ def Prefilter2ACP(server,headers,username,password):
     #print(filepolicy)
 
     # Migrate prefilter rules to Access Rules
+    print('*\n*\nConverting existing Prefilter rules to Access Rules...')
     acp_data = []
     DATE = datetime.now().strftime('%Y-%m-%d_%H%M')
 
@@ -1658,12 +1677,12 @@ def Prefilter2ACP(server,headers,username,password):
             item['logFiles'] = False
             item['action'] = 'ALLOW'
             item['type'] ='AccessRule'
-            if ips != 'None':
+            if ips:
                 item['ipsPolicy'] = ips
                 item['ipsPolicy']['type'] = 'IntrusionPolicy'
                 item['variableSet'] = vset
                 item['variableSet']['type'] = 'VariableSet'
-            if filepolicy != 'None':
+            if filepolicy:
                 item['logFiles'] = True
                 item['sendEventsToFMC'] = True
                 item['filePolicy'] = filepolicy
@@ -1723,7 +1742,7 @@ if __name__ == "__main__":
     print ('''
 ***********************************************************************************************
 *                                                                                             *
-*                   Cisco FMC v6 API Tools (Written for Python 3.6+)                          *
+*                   Cisco FMC v6.7 API Tools (Written for Python 3.6+)                        *
 *                                                                                             *
 ***********************************************************************************************
 *                                                                                             *
