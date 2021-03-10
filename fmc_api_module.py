@@ -161,7 +161,8 @@ def GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile):
 #
 #
 #
-# Prompt user to select from options, returns selection\
+# Prompt user to select from options, returns selection
+#   L == list of dict items with a 'name' key
 def Select(opt,L):
     options = {}
     counter = 0

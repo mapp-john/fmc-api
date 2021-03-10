@@ -128,24 +128,60 @@ def PostNetworkObject(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networks/)                     *
+*  1. Select Object type                                                                      *
 *                                                                                             *
 *  2. CSV Data Input file                                                                     *
-*          #CSV FORMAT - No Header Row: Column0 = ObjectName, Column1 = Address               *
+*       # CSV FORMAT:                                                                         *
+*           No Header Row & comma delimited                                                   *
+*           Can contain Host, Range, Network or FQDN objects, not a combination               *
+*           Column0 = ObjectName                                                              *
+*           Column1 = Address                                                                 *
 *                                                                                             *
 ***********************************************************************************************
 ''')
+
     print('Generating Access Token')
     # Generate Access Token and pull domains from auth headers
     results=AccessToken(server,headers,username,password)
     headers['X-auth-access-token']=results[0]
+    domains = results[1]
 
-    # Request API URI Path
-    api_path = input('Please Enter URI: ').lower().strip()
+    Test = False
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['uuid']
 
-    # Clean URI
-    if (api_path[-1] == '/'):
-        api_path = api_path[:-1]
+    objTypes= [
+        {
+            'name':'Host',
+            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+        },
+        {
+            'name':'Range',
+            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/ranges?bulk=true'
+        },
+        {
+            'name':'Network',
+            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+        },
+        {
+            'name':'FQDN',
+            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/fqdns?bulk=true'
+        }
+    ]
+    # Select type of Object to post
+    objType = Select('Object Type',objTypes)
 
     Test = False
     while not Test:
@@ -153,56 +189,43 @@ def PostNetworkObject(server,headers,username,password):
         read_csv = input('Please Enter Input File /full/file/path.csv: ')
         if os.path.isfile(read_csv):
             # Read csv file
-            open_read_csv = open(read_csv, 'rb')
+            open_read_csv = open(read_csv, 'r')
             my_csv_reader = csv.reader(open_read_csv, delimiter=',')
             Test = True
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    # Random Generated JSON Output File
-    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
-    filename += '.json'
-    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
-
-    # Combine Server and API Path
-    url = f'{server}{api_path}'
-
-    # Clean URL
-    if url[-1] == '/':
-        url = url[:-1]
-
-    # Creat For Loop To Process Each Item In CSV
+    post_data = []
+    # Create For Loop To Process Each Item In CSV
     for row in my_csv_reader:
-        # Pull Object Name and Address from CSV
-        ObjectName = row[0]
-        Address = row[1]
-        post_data = {
-        'name': ObjectName,
-        'type': 'Network',
-        'description': '',
-        'value': Address
-        }
+        objName = row[0]
+        address = row[1]
+        post_data.append({
+            'name': objName,
+            'type': objType['name'],
+            'description': '',
+            'value': address
+        })
 
+    try:
+        # REST call with SSL verification turned off:
+        url = objType['url']
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('Network Objects successfully created...')
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
         try:
-            # REST call with SSL verification turned off:
-            r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
-            status_code = r.status_code
-            resp = r.text
-            print(f'Status code is: {status_code}')
-            if status_code == 201 or status_code == 202:
-                print('Items Processing... View Output File For Full Change Log...')
-                json_resp = json.loads(resp)
-                outfile.write(json.dumps(json.loads(resp),indent=4))
-            else :
-                r.raise_for_status()
-                print ('Error occurred in POST --> {resp}')
-        except requests.exceptions.HTTPError as err:
-            print ('Error in connection --> {err}')
-        finally:
-            try:
-                if r: r.close()
-            except:
-                None
+            if r: r.close()
+        except:
+            None
 
 #
 #
@@ -290,9 +313,9 @@ def PostNetworkObjectGroup(server,headers,username,password):
                         outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
                     else :
                         json_resp = json.loads(resp)
-                        r.raise_for_status()
                         print(f'Error occurred in POST --> {resp}{ObjectName}')
                         outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
+                        r.raise_for_status()
                 except requests.exceptions.HTTPError as err:
                     print (f'Error in connection --> {err}')
                     outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
@@ -1013,12 +1036,11 @@ def PutIntrusionFile(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. Access Policy UUID                                                                      *
-*           (/api/fmc_config/v1/domain/{domain_UUID}/policy/accesspolicies/{ACP_UUID})        *
+*  1. Select Access Policy                                                                    *
 *                                                                                             *
-*  2. Intrusion Policy (Yes/No)                                                               *
+*  2. Select Intrusion Policy and Variable Set to apply to ALL rules                          *
 *                                                                                             *
-*  3. File Policy (Yes/No)                                                                    *
+*  3. Select File Policy to apply to ALL rules                                                *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1045,124 +1067,69 @@ def PutIntrusionFile(server,headers,username,password):
     else:
         API_UUID = domains[0]['uuid']
 
-    Test = False
-    while not Test:
-        # Request API URI Path
-        ACP_UUID = input('Please Enter Access-Policy UUID: ').lower().strip()
-        if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', ACP_UUID):
-            Test=True
-        else:
-            print('Invalid UUID...')
 
-    # Create Get DATA JSON Dictionary to collect data from GET calls
-    print('*\n*\nCOLLECTING ACCESS-POLICY...')
-    try:
-        # REST call with SSL verification turned off
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{ACP_UUID}/accessrules?offset=0&limit=1000&expanded=true'
-        r = requests.get(url, headers=headers, verify=False)
-        status_code = r.status_code
-        print(f'Status code is: {status_code}')
-        ACP_DATA = r.json()
-        json_resp = r.json()
-        if status_code == 200:
-            while 'next' in json_resp['paging']:
-                url_get = json_resp['paging']['next'][0]
-                print(f'*\n*\nCOLLECTING NEXT ACCESS-POLICY PAGE... {url_get}')
-                try:
-                    # REST call with SSL verification turned off
-                    r = requests.get(url_get, headers=headers, verify=False)
-                    status_code = r.status_code
-                    print(f'Status code is: {status_code}')
-                    if status_code == 200:
-                        # Loop for First Page of Items
-                        json_resp = r.json()
-                        for item in json_resp['items']:
-                            # Append Items to New Dictionary
-                            ACP_DATA['items'].append(item)
-                except requests.exceptions.HTTPError:
-                    err_resp = r.json()
-                    for item in err_resp['error']['messages']:
-                        # Error Handling for Access Token Timeout
-                        if 'Access token invalid' in item['description']:
-                            print ('Access token invalid... Attempting to Renew Token...')
-                            results=AccessToken(server,headers,username,password)
-                            headers['X-auth-access-token']=results[0]
-                        else:
-                            print (f'Error in connection --> {traceback.format_exc()}')
-                            outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
-    except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
-        outfile.write(f'Error occurred in GET --> {r.text}\n{url}\n')
+    # Get all Access Control Policies
+    print('*\n*\nCOLLECTING Access Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    acp_list = GetItems(url,headers)
 
-    IPS = input('Would You Like To Assign Intrusion Policy To Rules? [y/N]: ').lower()
+    acp = Select('Access Control Policy',acp_list)
+    #print(json.dumps(acp,indent=4))
 
-    if IPS in (['yes','ye','y']):
-        Test = False
-        while not Test:
-            # Request UUID for Intrusion Policy
-            IPSUUID = input('Please enter Intrusion Policy UUID: ').lower().strip()
-            # Verify UUID with RegEx match
-            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', IPSUUID):
-                Test = True
-            else:
-                print('Invalid UUID....')
-        # Request Intrusion Policy Name
-        IPSNAME = input('Please enter Intrusion Policy Name exactly as seen in API: ')
+    # Get all Access Control Policy rules
+    print('*\n*\nCOLLECTING Access Policy rules...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?offset=0&limit=1000&expanded=true'
+    acp_rules = GetItems(url,headers)
 
-        Test = False
-        while not Test:
-            # Request UUID for Variable Set
-            VSETUUID = input('Please enter Varable Set UUID: ').lower()
-            # Verify UUID with RegEx match
-            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', VSETUUID):
-                Test = True
-            else:
-                print('Invalid UUID....')
-        # Request Variable Set Name
-        VSETNAME = input('Please enter Variable Set Name exactly as seen in API: ')
+    # Get all Intrusion Policies
+    print('*\n*\nCOLLECTING Intusion Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/intrusionpolicies?offset=0&limit=1000'
+    ips_list = GetItems(url,headers)
+    # Add None option
+    ips_list.append({'None':'None'})
+    ips = Select('Intusion Policy',ips_list)
+    #print(json.dumps(ips,indent=4))
 
-    FILEPOLICY = input('Would You Like To Assign File Policy To Rules? [y/N]: ').lower().strip()
+    if ips:
+        # Get all Variable Sets
+        print('*\n*\nCOLLECTING Variable Sets...')
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
+        vset_list = GetItems(url,headers)
+        vset = Select('Variable Set',vset_list)
+    else:
+        vset = None
 
-    if FILEPOLICY in (['yes','ye','y']):
-        Test = False
-        while not Test:
-            # Request UUID for File Policy
-            FILEUUID = input('Please enter File Policy UUID: ').lower().strip()
-            # Verify UUID with RegEx match
-            if re.match('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', FILEUUID):
-                Test = True
-            else:
-                print('Invalid UUID. Exiting...')
-        # Request File Policy Name
-        FILENAME = input('Please enter File Policy Name exactly as seen in API: ')
+    # Get all File Policies
+    print('*\n*\nCOLLECTING File Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/filepolicies?offset=0&limit=1000'
+    file_list = GetItems(url,headers)
+    # Add None option
+    file_list.append({'None':'None'})
+    filepolicy = Select('File Policy',file_list)
 
-    # Random Generated JSON Output File
-    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
-    filename += '.json'
-    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
 
-    # For Loop to parse data from raw JSON
-    for item in ACP_DATA['items']:
+    # For Loop to update all rules
+    for item in acp_rules:
         if item ['action'] == 'ALLOW':
-            if IPS in (['yes','ye','y']):
+            if ips:
                 # Create IPS Policy
                 item ['ipsPolicy'] = {}
                 # Assign Values
-                item ['ipsPolicy']['id'] = IPSUUID
-                item ['ipsPolicy']['name'] = IPSNAME
+                item ['ipsPolicy']['id'] = ips['id']
+                item ['ipsPolicy']['name'] = ips['name']
                 item ['ipsPolicy']['type'] = 'IntrusionPolicy'
                 # Create VariableSet
                 item ['variableSet'] = {}
                 # Assign Values
-                item ['variableSet']['id'] = VSETUUID
-                item ['variableSet']['name'] = VSETNAME
+                item ['variableSet']['id'] = vset['id']
+                item ['variableSet']['name'] = vset['name']
                 item ['variableSet']['type'] = 'VariableSet'
-            if FILEPOLICY in (['yes','ye','y']):
+            if filepolicy:
                 # Create FilePolicy
                 item ['filePolicy'] = {}
                 # Assign Values
-                item ['filePolicy']['id'] = FILEUUID
-                item ['filePolicy']['name'] = FILENAME
+                item ['filePolicy']['id'] = filepolicy['id']
+                item ['filePolicy']['name'] = filepolicy['name']
                 item ['filePolicy']['type'] = 'FilePolicy'
 
             # Delete Unprocessable items
@@ -1174,17 +1141,15 @@ def PutIntrusionFile(server,headers,username,password):
             del item['commentHistoryList']
 
     try:
-        put_data = ACP_DATA['items']
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{ACP_UUID}/accessrules?bulk=true'
+        put_data = acp_rules
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?bulk=true'
         # REST call with SSL verification turned off:
         r = requests.put(url, json=put_data, headers=headers, verify=False)
         print(f'Performing API PUT to: {url}')
         status_code = r.status_code
         json_resp = r.json()
         if status_code == 200:
-            print(f'Items Processing... View Output File For Full Change Log... {filename}')
-            with open(filename, 'a') as OutFile:
-                OutFile.write(json.dumps(json_resp,indent=4))
+            print(f'Access Rules successfully updated')
         else:
             print(f'Status code:--> {status_code}')
             print(f'Error occurred in PUT --> {json_resp}')
@@ -1205,9 +1170,7 @@ def PutIntrusionFile(server,headers,username,password):
                     status_code = r.status_code
                     json_resp = r.json()
                     if (status_code == 200):
-                        print(f'Items Processing... View Output File For Full Change Log... {filename}')
-                        with open(filename, 'a') as OutFile:
-                            OutFile.write(json.dumps(json_resp,indent=4))
+                        print(f'Access Rules successfully updated')
                     else:
                         print(f'Status code:--> {status_code}')
                         print(f'Error occurred in PUT --> {json.dumps(json_resp,indent=4)}')
@@ -1643,7 +1606,7 @@ def Prefilter2ACP(server,headers,username,password):
     else:
         vset = None
 
-    # Get all Variable Sets
+    # Get all File Policies
     print('*\n*\nCOLLECTING File Policies...')
     url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/filepolicies?offset=0&limit=1000'
     file_list = GetItems(url,headers)
@@ -1814,7 +1777,7 @@ if __name__ == "__main__":
     while True:
         Script = False
         while not Script:
-            script = input('Please Select Script: ')
+            script = input('Please Select Tool: ')
             if script == '1':
                 Script = True
                 BlankGet(server,headers,username,password)
