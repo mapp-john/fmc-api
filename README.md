@@ -56,7 +56,7 @@ USER INPUT NEEDED:
 1. Save output to JSON or CSV file
 
 _____________________________________________________________________________________________
-**Update IPS and/or File Policy for Access Rules**
+**Register FTD to FMC**
 
 USER INPUT NEEDED:
 1. FTD IP address
@@ -65,7 +65,7 @@ USER INPUT NEEDED:
 4. Select ACP to apply to FTD
 
 _____________________________________________________________________________________________
-**Update IPS and/or File Policy for Access Rules**
+**Migrate Prefilter rules to Access Rules**
 
 USER INPUT NEEDED:
 1. Select Access Policy
