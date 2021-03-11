@@ -1,6 +1,6 @@
-***Cisco FMC v6.7 API Tools (Written for Python 3.6+)***
+# ***Cisco FMC v6.7 API Tools (Written for Python 3.6+)***
 
-**TOOLS AVAILABLE**
+## **TOOLS AVAILABLE**
 1. Basic URL GET
 2. Create Network-Objects in bulk
 3. Create Network Objects and Object Groups in bulk
@@ -11,7 +11,7 @@
 
 
 _____________________________________________________________________________________________
-**Basic URL GET Script**
+### **Basic URL GET Script**
 
 USER INPUT NEEDED:
 1. URI Path (/api/fmc_config/v1/domain/{domain_UUID}/object/networkgroups/{object_UUID})
@@ -21,7 +21,7 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-**Create Network Objects in bulk**
+### **Create Network Objects in bulk**
 
 USER INPUT NEEDED:
 1. Select Object type
@@ -35,14 +35,14 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-**Create Network Objects and Object Groups in bulk**
+### **Create Network Objects and Object Groups in bulk**
 
 USER INPUT NEEDED:
 1. TXT Data Input file
     * Output from ASA "show run object network" AND "show run object-group network"
     * Ensure no object names overlap with existing objects
     * Ensure nested groups are above groups nesting them
-### Example
+#### Example
 ```
 object network Net-1
  subnet 10.1.1.0 255.255.255.0
@@ -64,7 +64,7 @@ object-group network Group-2
 ```
 
 _____________________________________________________________________________________________
-**Update IPS and/or File Policy for Access Rules**
+### **Update IPS and/or File Policy for Access Rules**
 
 USER INPUT NEEDED:
 1. Select Access Policy
@@ -72,13 +72,13 @@ USER INPUT NEEDED:
 3. Select File Policy to apply to ALL rules
 
 _____________________________________________________________________________________________
-**Get Inventory List from FMC**
+### **Get Inventory List from FMC**
 
 USER INPUT NEEDED:
 1. Save output to JSON or CSV file
 
 _____________________________________________________________________________________________
-**Register FTD to FMC**
+### **Register FTD to FMC**
 
 USER INPUT NEEDED:
 1. FTD IP address
@@ -87,7 +87,7 @@ USER INPUT NEEDED:
 4. Select ACP to apply to FTD
 
 _____________________________________________________________________________________________
-**Migrate Prefilter rules to Access Rules**
+### **Migrate Prefilter rules to Access Rules**
 
 USER INPUT NEEDED:
 1. Select Access Policy
