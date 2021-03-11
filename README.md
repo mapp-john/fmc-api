@@ -2,10 +2,10 @@
 
 **TOOLS AVAILABLE**
 1. Basic URL GET
-2. Create Network-Objects in bulk (POST)
-3. Create Network-Objects in bulk and add to New Object-Group (POST)
-4. Update IPS and/or File Policy for Access Rules (PUT)
-5. Get Inventory List from FMC (GET)
+2. Create Network-Objects in bulk
+3. Create Network Objects and Object Groups in bulk
+4. Update IPS and/or File Policy for Access Rules
+5. Get Inventory List from FMC
 6. Register FTD to FMC
 7. Migrate Prefilter rules to Access Rules
 
@@ -35,11 +35,33 @@ USER INPUT NEEDED:
 
 
 _____________________________________________________________________________________________
-**Create Network Objects in bulk and add to new Object-Group**
+**Create Network Objects and Object Groups in bulk**
 
 USER INPUT NEEDED:
-1. TXT Data Input file (ASA "show run object-group" output)
-
+1. TXT Data Input file
+    * Output from ASA "show run object network" AND "show run object-group network"
+    * Ensure no object names overlap with existing objects
+    * Ensure nested groups are above groups nesting them
+### Example
+```
+object network Net-1
+ subnet 10.1.1.0 255.255.255.0
+object network Host-1
+ host 10.1.1.1
+object network FQDN-1
+ fqdn www.google.com
+object network Range-1
+ range 10.1.1.1 10.1.1.255
+object-group network Group-1
+ network-object host 10.1.1.1
+ network-object 10.2.2.0 255.255.255.0
+object-group network Group-2
+ network-object object Net-1
+ network-object object Host-1
+ network-object object FQDN-1
+ network-object object Range-1
+ group-object Group-1
+```
 
 _____________________________________________________________________________________________
 **Update IPS and/or File Policy for Access Rules**

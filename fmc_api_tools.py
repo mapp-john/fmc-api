@@ -162,7 +162,7 @@ def PostNetworkObject(server,headers,username,password):
     else:
         API_UUID = domains[0]['uuid']
 
-    objTypes= [
+    objTypes = [
         {
             'name':'Host',
             'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
@@ -234,12 +234,15 @@ def PostNetworkObject(server,headers,username,password):
 def PostNetworkObjectGroup(server,headers,username,password):
     print ('''
 ***********************************************************************************************
-*                Create Network Objects in bulk and add to new Object-Group                   *
+*                     Create Network Objects and Object Groups in bulk                        *
 *_____________________________________________________________________________________________*
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. TXT Data Input file (ASA "show run object-group" output)                                *
+*  1. TXT Data Input file                                                                     *
+*       # Output from ASA "show run object network" and "show run object-group network"       *
+*       # Ensure no object names overlap with existing objects                                *
+*       # Ensure nested groups are above groups nesting them                                  *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -277,752 +280,225 @@ def PostNetworkObjectGroup(server,headers,username,password):
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    # Random Generated JSON Output File
-    filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
-    filename += '.json'
-    print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
-    outfile = open(filename,'w')
+    tempData = {
+        'objects':[],
+        'groups':[]
+    }
 
-    # Define Counters
-    NetOb_Counter = 0
-    ObGr_Counter = 0
-    ObGr = False
-    # Create For Loop To Process Each Item In CSV
-    for item in open_read_file.splitlines():
-        # Find Object-Group Name
-        if item.startswith('object-group network '):
-            if ObGr:
-                # Post existing Object-Group JSON, and reset counters
-                NetOb_Counter = 0
-                ObGr_Counter = 0
-                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                # ReDefine Original Object-Group Name
-                ObGr_NAME = ObGr_NAME_Orig
-                ObGr_json_Size = json.dumps(ObGr_json)
-                # Perform POST for Obect-Group
-                try:
-                    # REST call with SSL verification turned off:
-                    r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                    status_code = r.status_code
-                    resp = r.text
-                    json_resp = json.loads(resp)
-                    print(f'Status code is: {status_code}')
-                    if status_code == 201 or status_code == 202:
-                        print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                        # Append Object-Group JSON with new entry for Network-Object
-                        outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                    else :
-                        json_resp = json.loads(resp)
-                        print(f'Error occurred in POST --> {resp}{ObjectName}')
-                        outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                        r.raise_for_status()
-                except requests.exceptions.HTTPError as err:
-                    print (f'Error in connection --> {err}')
-                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                finally:
-                    try:
-                        if r: r.close()
-                    except:
-                        None
+    SPLIT = re.split(r'\nobject',open_read_file)
+    for item in SPLIT:
+        obj = item.splitlines()
+        name = obj[0].split()[-1]
+        if obj[0].startswith('-group'):
+            obj.pop(0)
+            tempData['groups'].append({'name':name,'entries':obj})
+        else:
+            obj.pop(0)
+            tempData['objects'].append({'name':name,'entry':obj[0].strip()})
 
-            # Create New Object-Group JSON
-            ObGr = True
-            ObGr_NAME_Orig = item.strip('object-group network ')
-            ObGr_NAME = ObGr_NAME_Orig
-            # Create Base JSON data for Object-Group
-            ObGr_json = {
-            'name': ObGr_NAME,
-            'objects': [],
-            'type': 'NetworkGroup'
-            }
+    Data = {
+        'objects': {
+            'Host':[],
+            'Network':[],
+            'Range':[],
+            'FQDN':[]
+        },
+        'groups':{}
+    }
 
-
-
-
-
-
-
-           # # Create Network-Object JSON Data RANGE
-           # post_data = {
-           # 'name': ObjectName,
-           # 'type': 'Range',
-           # 'description': '',
-           # 'value': '1.1.1.1-1.1.1.2'
-           # }
+    for obj in tempData['objects']:
+        objName = obj['name']
+        if obj['entry'].startswith('host'):
+            objType = 'Host'
+            address = obj['entry'].split()[-1]
+            Data['objects']['Host'].append({
+                'name': objName,
+                'type': objType,
+                'description': '',
+                'value': address
+            })
+        elif obj['entry'].startswith('subnet'):
+            objType = 'Network'
+            address = f'{obj["entry"].split()[-2]}/{obj["entry"].split()[-1]}'
+            Data['objects']['Network'].append({
+                'name': objName,
+                'type': objType,
+                'description': '',
+                'value': address
+            })
+        elif obj['entry'].startswith('range'):
+            objType = 'Range'
+            address = f'{obj["entry"].split()[-2]}-{obj["entry"].split()[-1]}'
+            Data['objects']['Range'].append({
+                'name': objName,
+                'type': objType,
+                'description': '',
+                'value': address
+            })
+        if obj['entry'].startswith('fqdn'):
+            objType = 'FQDN'
+            address = obj['entry'].split()[-1]
+            Data['objects']['FQDN'].append({
+                'name': objName,
+                'type': objType,
+                'description': '',
+                'value': address
+            })
 
 
-
-
-
-        # Process Host Entries
-        elif item.startswith(' network-object host '):
-            Address = item.strip(' network-object host ')
-            # Define Network-Object Name
-            ObjectName = f'host-{Address}'
-            # Create Network-Object JSON Data
-            post_data = {
-            'name': ObjectName,
-            'type': 'Host',
-            'description': '',
-            'value': Address
-            }
-            # Define Network-Object Counter
-            NetOb_Counter += 1
-            if NetOb_Counter in list(range(50,2000,50)):
-                ## Generate Access Token
-                print ('Attempting to Renew Token...')
-                results=AccessToken(server,headers,username,password)
-                headers['X-auth-access-token']=results[0]
-            # Perform POST for each Network-Object
-            try:
-                # Format URL for Network-Object POST
-                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts'
-                # REST call with SSL verification turned off:
-                r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
-                status_code = r.status_code
-                resp = r.text
-                print(f'[{NetOb_Counter}] Network-Object Processing... View Output File For Full Change Log...')
-                print(f'Status code is: {status_code}')
-                json_resp = json.loads(resp)
-                if status_code == 201 or status_code == 202:
-                    # Pull Object UUID from json_resp data
-                    ObjectID = json_resp ['id']
-                    # Append Object-Group JSON with new entry for Network-Object
-                    ObGr_json['objects'].append({'type': 'Host','id': ObjectID})
-                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-                    # Set JSON Data for checking DUMP size
-                    ObGr_json_Size = json.dumps(ObGr_json)
-                    # Validate size of JSON Data
-                    if sys.getsizeof(ObGr_json_Size) >= 20000:
-                        print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                        outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                        # Increase Object-Group Counter
-                        ObGr_Counter += 1
-                        # Add Counter To Group Name
-                        ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                        ObGr_json['name'] = ObGr_Count
-                        # Format URL for Object-Group POST
-                        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                        # Perform POST for Obect-Group
-                        try:
-                            # REST call with SSL verification turned off:
-                            r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                            status_code = r.status_code
-                            resp = r.text
-                            json_resp = json.loads(resp)
-                            print(f'Status code is: {status_code}')
-                            if status_code == 201 or status_code == 202:
-                                print('Object-Group Processing... View Output File For Full Change Log...')
-                                # Append Object-Group JSON with new entry for Network-Object
-                                outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                # Reset Object-Group Data
-                                ObGr_Data = None
-                                ObGr_Data = {
-                                'name': ObGr_NAME,
-                                'objects': [],
-                                'type': 'NetworkGroup'
-                                }
-                                # Read Object-Group JSON data for Editing
-                                ObGr_json = json.loads(json.dumps(ObGr_Data))
-                            else :
-                                json_resp = json.loads(resp)
-                                r.raise_for_status()
-                                print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                        except requests.exceptions.HTTPError as err:
-                            print (f'Error in connection --> {err}')
-                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                        finally:
-                            try:
-                                if r: r.close()
-                            except:
-                                None
-                else :
-                    r.raise_for_status()
-                    outfile.write(f'Error occurred in POST --> {json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                    print(f'Error occurred in POST --> {json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-            except requests.exceptions.HTTPError as err:
-                json_resp = json.loads(resp)
-                print(f'Error in connection -->{err}')
-                outfile.write(f'Error in connection --> {err}\n{json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                for item in json_resp['error']['messages']:
-                    # Error Handling for Network-Object that already exists
-                    if 'already exists' in item['description']:
-                        print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
-
-                        # Perform GET to grab UUID for Network Object that already exists
-                        ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
-
-                        # Append Object-Group JSON with new entry for Network-Object
-                        ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
-                        outfile.write(json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n')
-
-                        # Set JSON Data for checking DUMP size
-                        ObGr_json_Size = json.dumps(ObGr_json)
-
-                        # Validate size of JSON Data
-                        if sys.getsizeof(ObGr_json_Size) >= 20000:
-                            print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                            outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                            # Increase Object-Group Counter
-                            ObGr_Counter += 1
-
-                            # Run Object Object-Group Creation
-                            #ObGr_Data = LargeObGrPost()
-
-                            # Add Counter To Group Name
-                            ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                            ObGr_json['name'] = ObGr_Count
-                            # Format URL for Object-Group POST
-                            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                            # Perform POST for Obect-Group
-                            try:
-                                # REST call with SSL verification turned off:
-                                r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                status_code = r.status_code
-                                resp = r.text
-                                json_resp = json.loads(resp)
-                                print(f'Status code is: {status_code}')
-                                if status_code == 201 or status_code == 202:
-                                    print('Object-Group Processing... View Output File For Full Change Log...')
-                                    # Append Object-Group JSON with new entry for Network-Object
-                                    outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                    # Reset Object-Group Data
-                                    ObGr_Data = None
-                                    ObGr_Data = {
-                                    'name': ObGr_NAME,
-                                    'objects': [],
-                                    'type': 'NetworkGroup'
-                                    }
-                                    # Read Object-Group JSON data for Editing
-                                    ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                else :
-                                    json_resp = json.loads(resp)
-                                    r.raise_for_status()
-                                    print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                            except requests.exceptions.HTTPError as err:
-                                print (f'Error in connection --> {err}')
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                            finally:
-                                try:
-                                    if r: r.close()
-                                except:
-                                    None
-
-                    # Error Handling for Access Token Timeout
-                    elif 'Access token invalid' in item['description']:
-                        print ('Access token invalid... Attempting to Renew Token...')
-                        results=AccessToken(server,headers,username,password)
-                        headers['X-auth-access-token']=results[0]
-
-                        # Perform POST for each Network-Object
-                        try:
-                            # Format URL for Network-Object POST
-                            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hostss'
-                            # REST call with SSL verification turned off:
-                            r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
-                            # REST call with SSL verification turned on:
-                            # r = requests.post(url, data=json.dumps(post_data), headers=headers, verify='/path/to/ssl_certificate')
-                            status_code = r.status_code
-                            resp = r.text
-                            print('['+str(NetOb_Counter)+'] Network-Object Processing... View Output File For Full Change Log...')
-                            print(f'Status code is: {status_code}')
-                            json_resp = json.loads(resp)
-                            if status_code == 201 or status_code == 202:
-                                # Pull Object UUID from json_resp data
-                                ObjectID = json_resp ['id']
-                                # Append Object-Group JSON with new entry for Network-Object
-                                ObGr_json['objects'].append({'type': 'Host','id': ObjectID})
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-                                # Set JSON Data for checking DUMP size
-                                ObGr_json_Size = json.dumps(ObGr_json)
-                                # Validate size of JSON Data
-                                if sys.getsizeof(ObGr_json_Size) >= 20000:
-                                    print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                                    outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                                    # Increase Object-Group Counter
-                                    ObGr_Counter = ObGr_Counter + 1
-
-                                    # Run Object Object-Group Creation
-                                    #ObGr_Data = LargeObGrPost()
-
-                                    # Add Counter To Group Name
-                                    ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                                    ObGr_json['name'] = ObGr_Count
-                                    # Format URL for Object-Group POST
-                                    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                                    # Perform POST for Obect-Group
-                                    try:
-                                        # REST call with SSL verification turned off:
-                                        r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                        status_code = r.status_code
-                                        resp = r.text
-                                        json_resp = json.loads(resp)
-                                        print(f'Status code is: {status_code}')
-                                        if status_code == 201 or status_code == 202:
-                                            print('Object-Group Processing... View Output File For Full Change Log...')
-                                            # Append Object-Group JSON with new entry for Network-Object
-                                            outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                            # Reset Object-Group Data
-                                            ObGr_Data = None
-                                            ObGr_Data = {
-                                            'name': ObGr_NAME,
-                                            'objects': [],
-                                            'type': 'NetworkGroup'
-                                            }
-                                            # Read Object-Group JSON data for Editing
-                                            ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                        else :
-                                            json_resp = json.loads(resp)
-                                            r.raise_for_status()
-                                            print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                                    except requests.exceptions.HTTPError as err:
-                                        print (f'Error in connection --> {err}')
-                                        outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                                    finally:
-                                        try:
-                                            if r: r.close()
-                                        except:
-                                            None
-                            else :
-                                r.raise_for_status()
-                                outfile.write('Error occurred in POST --> '+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                                print ('Error occurred in POST --> '+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                        except requests.exceptions.HTTPError as err:
-                            json_resp = json.loads(resp)
-                            print (f'Error in connection --> {err}')
-                            outfile.write(f'Error in connection --> {err}'+'\n'+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                            for item in json_resp['error']['messages']:
-                                # Error Handling for Network-Object that already exists
-                                if 'already exists' in item['description']:
-                                    print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
-
-                                    # Perform GET to grab UUID for Network Object that already exists
-                                    ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
-
-                                    # Append Object-Group JSON with new entry for Network-Object
-                                    ObGr_json['objects'].append({'type': 'Host','id': ObjectID})
-                                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-
-                                    # Set JSON Data for checking DUMP size
-                                    ObGr_json_Size = json.dumps(ObGr_json)
-
-                                    # Validate size of JSON Data
-                                    if sys.getsizeof(ObGr_json_Size) >= 20000:
-                                        print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                                        outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                                        # Increase Object-Group Counter
-                                        ObGr_Counter += 1
-
-                                        # Run Object Object-Group Creation
-                                        #ObGr_Data = LargeObGrPost()
-
-                                        # Add Counter To Group Name
-                                        ObGr_Count = ObGr_NAME+'-'+str(ObGr_Counter)
-                                        ObGr_json['name'] = ObGr_Count
-                                        # Format URL for Object-Group POST
-                                        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                                        # Perform POST for Obect-Group
-                                        try:
-                                            # REST call with SSL verification turned off:
-                                            r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                            status_code = r.status_code
-                                            resp = r.text
-                                            json_resp = json.loads(resp)
-                                            print(f'Status code is: {status_code}')
-                                            if status_code == 201 or status_code == 202:
-
-                                                print('Object-Group Processing... View Output File For Full Change Log...')
-                                                # Append Object-Group JSON with new entry for Network-Object
-
-                                                outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                                # Reset Object-Group Data
-                                                ObGr_Data = None
-                                                ObGr_Data = {
-                                                'name': ObGr_NAME,
-                                                'objects': [],
-                                                'type': 'NetworkGroup'
-                                                }
-                                                # Read Object-Group JSON data for Editing
-                                                ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                            else :
-                                                json_resp = json.loads(resp)
-                                                r.raise_for_status()
-                                                print(f'Error occurred in POST --> {resp}{ObjectName}')
-                                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                                        except requests.exceptions.HTTPError as err:
-                                            print (f'Error in connection --> {err}')
-                                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                                        finally:
-                                            try:
-                                                if r: r.close()
-                                            except:
-                                                None
-                        finally:
-                            try:
-                                if r: r.close()
-                            except:
-                                None
-
-        # Process Network Entries
-        elif item.startswith(' network-object '):
-            net = item.strip(' network-object ').replace(' ','/')
-            # Convert Netmask to CIDR notation
-            Address = netaddr.IPNetwork(net).cidr
-            # Define Network-Object Name
-            ObjectName = f'net-{str(Address).replace("/","n")}'
-            # Create Network-Object JSON Data
-            post_data = {
-            'name': ObjectName,
-            'type': 'Network',
-            'description': '',
-            'value': str(Address)
-            }
-            # Define Network-Object Counter
-            NetOb_Counter += 1
-            if NetOb_Counter in list(range(50,2000,50)):
-                ## Generate Access Token
-                print ('Attempting to Renew Token...')
-                results=AccessToken(server,headers,username,password)
-                headers['X-auth-access-token']=results[0]
-            # Perform POST for each Network-Object
-            try:
-                # Format URL for Network-Object POST
-                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks'
-                # REST call with SSL verification turned off:
-                r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
-                status_code = r.status_code
-                resp = r.text
-                print(f'[{NetOb_Counter}] Network-Object Processing... View Output File For Full Change Log...')
-                print(f'Status code is: {status_code}')
-                json_resp = json.loads(resp)
-                if status_code == 201 or status_code == 202:
-                    # Pull Object UUID from json_resp data
-                    ObjectID = json_resp ['id']
-                    # Append Object-Group JSON with new entry for Network-Object
-                    ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
-                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-                    # Set JSON Data for checking DUMP size
-                    ObGr_json_Size = json.dumps(ObGr_json)
-                    # Validate size of JSON Data
-                    if sys.getsizeof(ObGr_json_Size) >= 20000:
-                        print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                        outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                        # Increase Object-Group Counter
-                        ObGr_Counter += 1
-                        # Add Counter To Group Name
-                        ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                        ObGr_json['name'] = ObGr_Count
-                        # Format URL for Object-Group POST
-                        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                        # Perform POST for Obect-Group
-                        try:
-                            # REST call with SSL verification turned off:
-                            r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                            status_code = r.status_code
-                            resp = r.text
-                            json_resp = json.loads(resp)
-                            print(f'Status code is: {status_code}')
-                            if status_code == 201 or status_code == 202:
-                                print('Object-Group Processing... View Output File For Full Change Log...')
-                                # Append Object-Group JSON with new entry for Network-Object
-                                outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                # Reset Object-Group Data
-                                ObGr_Data = None
-                                ObGr_Data = {
-                                'name': ObGr_NAME,
-                                'objects': [],
-                                'type': 'NetworkGroup'
-                                }
-                                # Read Object-Group JSON data for Editing
-                                ObGr_json = json.loads(json.dumps(ObGr_Data))
-                            else :
-                                json_resp = json.loads(resp)
-                                r.raise_for_status()
-                                print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                        except requests.exceptions.HTTPError as err:
-                            print (f'Error in connection --> {err}')
-                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                        finally:
-                            try:
-                                if r: r.close()
-                            except:
-                                None
-                else :
-                    r.raise_for_status()
-                    outfile.write(f'Error occurred in POST --> {json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                    print(f'Error occurred in POST --> {json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-            except requests.exceptions.HTTPError as err:
-                json_resp = json.loads(resp)
-                print(f'Error in connection -->{err}')
-                outfile.write(f'Error in connection --> {err}\n{json.dumps(json_resp,indent=4)}\n{ObjectName}\n')
-                for item in json_resp['error']['messages']:
-                    # Error Handling for Network-Object that already exists
-                    if 'already exists' in item['description']:
-                        print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
-
-                        # Perform GET to grab UUID for Network Object that already exists
-                        ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
-
-                        # Append Object-Group JSON with new entry for Network-Object
-                        ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
-                        outfile.write(json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n')
-
-                        # Set JSON Data for checking DUMP size
-                        ObGr_json_Size = json.dumps(ObGr_json)
-
-                        # Validate size of JSON Data
-                        if sys.getsizeof(ObGr_json_Size) >= 20000:
-                            print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                            outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                            # Increase Object-Group Counter
-                            ObGr_Counter += 1
-
-                            # Run Object Object-Group Creation
-                            #ObGr_Data = LargeObGrPost()
-
-                            # Add Counter To Group Name
-                            ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                            ObGr_json['name'] = ObGr_Count
-                            # Format URL for Object-Group POST
-                            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                            # Perform POST for Obect-Group
-                            try:
-                                # REST call with SSL verification turned off:
-                                r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                status_code = r.status_code
-                                resp = r.text
-                                json_resp = json.loads(resp)
-                                print(f'Status code is: {status_code}')
-                                if status_code == 201 or status_code == 202:
-                                    print('Object-Group Processing... View Output File For Full Change Log...')
-                                    # Append Object-Group JSON with new entry for Network-Object
-                                    outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                    # Reset Object-Group Data
-                                    ObGr_Data = None
-                                    ObGr_Data = {
-                                    'name': ObGr_NAME,
-                                    'objects': [],
-                                    'type': 'NetworkGroup'
-                                    }
-                                    # Read Object-Group JSON data for Editing
-                                    ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                else :
-                                    json_resp = json.loads(resp)
-                                    r.raise_for_status()
-                                    print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                            except requests.exceptions.HTTPError as err:
-                                print (f'Error in connection --> {err}')
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                            finally:
-                                try:
-                                    if r: r.close()
-                                except:
-                                    None
-
-                    # Error Handling for Access Token Timeout
-                    elif 'Access token invalid' in item['description']:
-                        print ('Access token invalid... Attempting to Renew Token...')
-                        results=AccessToken(server,headers,username,password)
-                        headers['X-auth-access-token']=results[0]
-
-                        # Perform POST for each Network-Object
-                        try:
-                            # Format URL for Network-Object POST
-                            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks'
-                            # REST call with SSL verification turned off:
-                            r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
-                            # REST call with SSL verification turned on:
-                            # r = requests.post(url, data=json.dumps(post_data), headers=headers, verify='/path/to/ssl_certificate')
-                            status_code = r.status_code
-                            resp = r.text
-                            print('['+str(NetOb_Counter)+'] Network-Object Processing... View Output File For Full Change Log...')
-                            print(f'Status code is: {status_code}')
-                            json_resp = json.loads(resp)
-                            if status_code == 201 or status_code == 202:
-                                # Pull Object UUID from json_resp data
-                                ObjectID = json_resp ['id']
-                                # Append Object-Group JSON with new entry for Network-Object
-                                ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
-                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-                                # Set JSON Data for checking DUMP size
-                                ObGr_json_Size = json.dumps(ObGr_json)
-                                # Validate size of JSON Data
-                                if sys.getsizeof(ObGr_json_Size) >= 20000:
-                                    print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                                    outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                                    # Increase Object-Group Counter
-                                    ObGr_Counter = ObGr_Counter + 1
-
-                                    # Run Object Object-Group Creation
-                                    #ObGr_Data = LargeObGrPost()
-
-                                    # Add Counter To Group Name
-                                    ObGr_Count = f'{ObGr_NAME}-{ObGr_Counter}'
-                                    ObGr_json['name'] = ObGr_Count
-                                    # Format URL for Object-Group POST
-                                    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                                    # Perform POST for Obect-Group
-                                    try:
-                                        # REST call with SSL verification turned off:
-                                        r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                        status_code = r.status_code
-                                        resp = r.text
-                                        json_resp = json.loads(resp)
-                                        print(f'Status code is: {status_code}')
-                                        if status_code == 201 or status_code == 202:
-                                            print('Object-Group Processing... View Output File For Full Change Log...')
-                                            # Append Object-Group JSON with new entry for Network-Object
-                                            outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                            # Reset Object-Group Data
-                                            ObGr_Data = None
-                                            ObGr_Data = {
-                                            'name': ObGr_NAME,
-                                            'objects': [],
-                                            'type': 'NetworkGroup'
-                                            }
-                                            # Read Object-Group JSON data for Editing
-                                            ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                        else :
-                                            json_resp = json.loads(resp)
-                                            r.raise_for_status()
-                                            print (f'Error occurred in POST --> {resp}{ObjectName}')
-                                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                                    except requests.exceptions.HTTPError as err:
-                                        print (f'Error in connection --> {err}')
-                                        outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                                    finally:
-                                        try:
-                                            if r: r.close()
-                                        except:
-                                            None
-                            else :
-                                r.raise_for_status()
-                                outfile.write('Error occurred in POST --> '+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                                print ('Error occurred in POST --> '+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                        except requests.exceptions.HTTPError as err:
-                            json_resp = json.loads(resp)
-                            print (f'Error in connection --> {err}')
-                            outfile.write(f'Error in connection --> {err}'+'\n'+json.dumps(json_resp,sort_keys=True,indent=4, separators=(',', ': '))+'\n'+ObjectName+'\n')
-                            for item in json_resp['error']['messages']:
-                                # Error Handling for Network-Object that already exists
-                                if 'already exists' in item['description']:
-                                    print(f'Network Object Already Exists... Attempting to Get UUID for {ObjectName}')
-
-                                    # Perform GET to grab UUID for Network Object that already exists
-                                    ObjectID = GetNetObjectUUID(server,API_UUID,headers,ObjectName,outfile)
-
-                                    # Append Object-Group JSON with new entry for Network-Object
-                                    ObGr_json['objects'].append({'type': 'Network','id': ObjectID})
-                                    outfile.write(f'{json.dumps(json_resp,indent=4)}\n')
-
-                                    # Set JSON Data for checking DUMP size
-                                    ObGr_json_Size = json.dumps(ObGr_json)
-
-                                    # Validate size of JSON Data
-                                    if sys.getsizeof(ObGr_json_Size) >= 20000:
-                                        print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-                                        outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
-                                        # Increase Object-Group Counter
-                                        ObGr_Counter += 1
-
-                                        # Run Object Object-Group Creation
-                                        #ObGr_Data = LargeObGrPost()
-
-                                        # Add Counter To Group Name
-                                        ObGr_Count = ObGr_NAME+'-'+str(ObGr_Counter)
-                                        ObGr_json['name'] = ObGr_Count
-                                        # Format URL for Object-Group POST
-                                        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-                                        # Perform POST for Obect-Group
-                                        try:
-                                            # REST call with SSL verification turned off:
-                                            r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
-                                            # REST call with SSL verification turned on:
-                                            # r = requests.post(url, data=json.dumps(post_data), headers=headers, verify='/path/to/ssl_certificate')
-                                            status_code = r.status_code
-                                            resp = r.text
-                                            json_resp = json.loads(resp)
-                                            print(f'Status code is: {status_code}')
-                                            if status_code == 201 or status_code == 202:
-
-                                                print('Object-Group Processing... View Output File For Full Change Log...')
-                                                # Append Object-Group JSON with new entry for Network-Object
-
-                                                outfile.write(f'Object-Group Created...\n{ObGr_Count}\n{json.dumps(json_resp,indent=4)}\n')
-                                                # Reset Object-Group Data
-                                                ObGr_Data = None
-                                                ObGr_Data = {
-                                                'name': ObGr_NAME,
-                                                'objects': [],
-                                                'type': 'NetworkGroup'
-                                                }
-                                                # Read Object-Group JSON data for Editing
-                                                ObGr_json = json.loads(json.dumps(ObGr_Data))
-                                            else :
-                                                json_resp = json.loads(resp)
-                                                r.raise_for_status()
-                                                print(f'Error occurred in POST --> {resp}{ObjectName}')
-                                                outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-                                        except requests.exceptions.HTTPError as err:
-                                            print (f'Error in connection --> {err}')
-                                            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
-
-                                        finally:
-                                            try:
-                                                if r: r.close()
-                                            except:
-                                                None
-                        finally:
-                            try:
-                                if r: r.close()
-                            except:
-                                None
-
-
-    # Post Final Object-Group
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
-    # ReDefine Original Object-Group Name
-    ObGr_NAME = ObGr_NAME_Orig
-    ObGr_json_Size = json.dumps(ObGr_json)
-    # Perform POST for Obect-Group
+    # Post Host objects, and store JSON response with object uuids
     try:
         # REST call with SSL verification turned off:
-        r = requests.post(url, data=json.dumps(ObGr_json), headers=headers, verify=False)
+        post_data = Data['objects']['Host']
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
-        json_resp = json.loads(resp)
         print(f'Status code is: {status_code}')
         if status_code == 201 or status_code == 202:
-            print(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... View Output File For Full Change Log...\n{"*"*95}')
-            # Append Object-Group JSON with new entry for Network-Object
-            outfile.write(f'{"*"*95}\nObject-Group Size {sys.getsizeof(ObGr_json_Size)}B, Processing Now... \n{json.dumps(ObGr_json,indent=4)}\n{"*"*95}')
+            print('Network Objects successfully created...')
+            Data['objects']['Host'] = r.json()['items']
         else :
-            json_resp = json.loads(resp)
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
             r.raise_for_status()
-            print(f'Error occurred in POST --> {resp}{ObjectName}')
-            outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
     except requests.exceptions.HTTPError as err:
-        print (f'Error in connection --> {err}')
-        outfile.write(f'{json.dumps(json_resp,indent=4)}\n{ObGr_NAME}\n')
+        print (f'Error in connection --> {traceback.format_exc()}')
     finally:
         try:
             if r: r.close()
         except:
             None
 
-    outfile.close()
+    # Post Network objects, and store JSON response with object uuids
+    try:
+        # REST call with SSL verification turned off:
+        post_data = Data['objects']['Network']
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('Network Objects successfully created...')
+            Data['objects']['Network'] = r.json()['items']
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
+
+    # Post Ranges objects, and store JSON response with object uuids
+    try:
+        # REST call with SSL verification turned off:
+        post_data = Data['objects']['Range']
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/ranges?bulk=true'
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('Network Objects successfully created...')
+            Data['objects']['Range'] = r.json()['items']
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
+
+    # Post FQDN objects, and store JSON response with object uuids
+    try:
+        # REST call with SSL verification turned off:
+        post_data = Data['objects']['FQDN']
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/fqdns?bulk=true'
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 201 or status_code == 202:
+            print('Network Objects successfully created...')
+            Data['objects']['FQDN'] = r.json()['items']
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
+
+    for obj in tempData['groups']:
+        objName = obj['name']
+        Obj = {
+            'name': objName,
+            'type': 'NetworkGroup',
+            'objects': [],
+            'literals': []
+        }
+        for item in obj['entries']:
+            if 'network-object host ' in item:
+                address = item.split()[-1]
+                Obj['literals'].append({
+                    'type': 'Host',
+                    'value': address
+                })
+            elif 'network-object object ' in item:
+                nestObjName = item.split()[-1]
+                for k,v in Data['objects'].items():
+                    for i in v:
+                        if i['name'] == nestObjName:
+                            Obj['objects'].append({
+                                'type': i['type'],
+                                'id': i['id']
+                            })
+            elif 'network-object ' in item:
+                address = f'{item.split()[-2]}/{item.split()[-1]}'
+                Obj['literals'].append({
+                    'type': 'Network',
+                    'value': address
+                })
+            elif 'group-object ' in item:
+                nestObjName = item.split()[-1]
+                i = Data['groups'][nestObjName]
+                Obj['objects'].append({
+                    'type': i['type'],
+                    'id': i['id']
+                })
+
+        # Post object group, and store JSON response with object uuids
+        try:
+            # REST call with SSL verification turned off:
+            post_data = Obj
+            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
+            r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+            status_code = r.status_code
+            resp = r.text
+            print(f'Status code is: {status_code}')
+            if status_code == 201 or status_code == 202:
+                print('Network Object Group successfully created...')
+                Data['groups'].update({objName:r.json()})
+            else :
+                print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+                r.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print (f'Error in connection --> {traceback.format_exc()}')
+        finally:
+            try:
+                if r: r.close()
+            except:
+                None
+
 
 #
 #
