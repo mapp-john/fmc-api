@@ -8,6 +8,7 @@
 5. Get Inventory List from FMC
 6. Register FTD to FMC
 7. Migrate Prefilter rules to Access Rules
+8. Update Object Group with entries from txt file
 
 
 _____________________________________________________________________________________________
@@ -93,4 +94,21 @@ USER INPUT NEEDED:
 1. Select Access Policy
 2. Select Intrusion Policy and Variable Set to apply to ALL converted rules
 3. Select File Policy to apply to ALL converted rules
+
+_____________________________________________________________________________________________
+### **Update Object Group with entries from txt file**
+
+USER INPUT NEEDED:
+1. Object Group Name
+2. TXT Data Input file
+    * Supports groups with only IPv4 Host and Network objects
+    * Text file must contain only host IPs and networks with CIDR notation
+#### Example
+```
+10.1.1.1
+10.1.1.3
+10.1.3.0/24
+10.2.2.0/24
+```
+
 
