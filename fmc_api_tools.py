@@ -13,6 +13,7 @@ import os,\
         warnings,\
         traceback
 from datetime import datetime
+from ipaddress import IPv4Network
 
 # Import custom modules from file
 from fmc_api_module import \
@@ -949,8 +950,9 @@ def RegisterFTD(server,headers,username,password):
     print('*\n*\nCOLLECTING Access Policies...')
     url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?offset=0&limit=1000'
     acp_list = GetItems(url,headers)
-
-
+    if acp_list == []:
+        print('*\n*\nNO ACCESS POLICY CONFIGURED...\nCREATE ACCESS POLICY IN FMC AND ATTEMPT AGAIN...')
+        return
     acp = Select('Access Control Policy',acp_list)
     #print(json.dumps(acp,indent=4))
 
@@ -986,9 +988,9 @@ def RegisterFTD(server,headers,username,password):
             json_resp = r.json()
         else :
             r.raise_for_status()
-            print ('Error occurred in POST --> {resp}')
+            print (f'Error occurred in POST --> {resp}')
     except requests.exceptions.HTTPError as err:
-        print ('Error in connection --> {traceback.format_exc()}')
+        print (f'Error in connection --> {traceback.format_exc()}')
     finally:
         try:
             if r: r.close()
@@ -1003,7 +1005,7 @@ def RegisterFTD(server,headers,username,password):
         connection.disconnect()
         print('FTD Registration command successful...')
     except:
-        print ('Error in SSH connection --> {traceback.format_exc()}')
+        print (f'Error in SSH connection --> {traceback.format_exc()}')
         connection.disconnect()
 
 
@@ -1169,6 +1171,260 @@ def Prefilter2ACP(server,headers,username,password):
 
 
 
+
+#
+#
+#
+# Object Group Compare and Update
+def ObjGroupUpdate(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                    Update Object Group with entries from txt file                           *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. Object Group Name                                                                       *
+*                                                                                             *
+*  2. Network Text File                                                                       *
+*                                                                                             *
+*       Notes:                                                                                *
+*          Supports groups with only IPv4 Host and Network objects                            *
+*          Text file must contain only host IPs and networks with CIDR notation               *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    print('Generating Access Token')
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+    Test = False
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['uuid']
+
+    objGroupName = input('Please Enter Object Group Name: ').strip()
+    Test = False
+    while not Test:
+        # Request Input File
+        read_file = input('Please Enter Input File /full/file/path.txt: ').strip()
+        if os.path.isfile(read_file):
+            # Read csv file
+            open_read_file = open(read_file, 'r').read()
+            Test = True
+        else:
+            print('MUST PROVIDE INPUT FILE...')
+
+    fileEntries = open_read_file.splitlines()
+
+
+    # Collect all Network objects
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?expanded=true&offset=0&limit=1000'
+    networks = GetItems(url,headers)
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?expanded=true&offset=0&limit=1000'
+    hosts = GetItems(url,headers)
+
+
+
+    url = f'{server}/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/object/networkgroups?expanded=true&offset=0&limit=1000'
+    objGroupEntries = []
+    objGroups = GetItems(url,headers)
+    objGroup = None
+    for g in objGroups:
+        if g['name'] == objGroupName:
+            objGroup = g
+
+    if not objGroup:
+        print(f'Group name "{objGroupName}" not found')
+        return
+    else:
+        if 'literals' in objGroup:
+            for lit in objGroup['literals']:
+                if lit['type'] == 'Network':
+                    objGroupEntries.append(IPv4Network(lit['value']).with_prefixlen)
+                else:
+                    objGroupEntries.append(lit['value'])
+        if 'objects' in objGroup:
+            # Append networks with CIDR notation
+            objGroupEntries += [
+                IPv4Network(item['value']).with_prefixlen for item in networks if item['id'] in [i['id'] for i in objGroup['objects']]]
+            objGroupEntries += [
+                item['value'] for item in hosts if item['id'] in [i['id'] for i in objGroup['objects']]]
+
+        # Compile list of Missing entries on FMC
+        diffMissing = [ip for ip in fileEntries if ip not in objGroupEntries]
+        # Compile list of Extra entries on FMC
+        diffExtra = [ip for ip in objGroupEntries if ip not in fileEntries]
+
+        newLits = []
+        newObjs = []
+        newEntries = []
+        # Include literals if they are in the file entries
+        if 'literals' in objGroup:
+            for lit in objGroup['literals']:
+                if lit['type'] == 'Network':
+                    if IPv4Network(lit['value']).with_prefixlen in fileEntries:
+                        newEntries.append(IPv4Network(lit['value']).with_prefixlen)
+                        newLits.append(lit)
+                elif lit['value'] in fileEntries:
+                    newLits.append(lit)
+
+        for ip in fileEntries:
+            if ('/' in ip) and (IPv4Network(ip).with_prefixlen not in newEntries):
+                for net in networks:
+                    try:
+                        if IPv4Network(ip).with_prefixlen == IPv4Network(net['value']).with_prefixlen:
+                            newObjs.append({
+                                'type': net['type'],
+                                'name': net['name'],
+                                'id': net['id']
+                            })
+                            newEntries.append(IPv4Network(ip).with_prefixlen)
+                    except:
+                        None
+            else:
+                for host in hosts:
+                    if (ip not in newEntries) and (ip == host['value']):
+                        newObjs.append({
+                            'type': host['type'],
+                            'name': host['name'],
+                            'id': host['id']
+                        })
+                        newEntries.append(ip)
+
+        missingObj = [ip for ip in fileEntries if ip not in newEntries]
+
+        createNets = {'data': [], 'result': []}
+        createHosts = {'data': [], 'result': []}
+        for ip in missingObj:
+            if '/' in ip:
+                createNets['data'].append({
+                    'name': f'Net-{ip.replace("/","-")}',
+                    'type': 'Network',
+                    'description': '',
+                    'value': ip
+                })
+            else:
+                createHosts['data'].append({
+                    'name': f'Host-{ip}',
+                    'type': 'Host',
+                    'description': '',
+                    'value': ip
+                })
+
+        if createNets['data'] != []:
+            # Post Network objects, and store JSON response with object uuids
+            try:
+                # REST call with SSL verification turned off:
+                post_data = createNets['data']
+                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+                r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+                status_code = r.status_code
+                resp = r.text
+                print(f'Status code is: {status_code}')
+                if status_code == 201 or status_code == 202:
+                    print('Network Objects successfully created...')
+                    createNets['result'] = r.json()['items']
+                else :
+                    print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+                    r.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                print (f'Error in connection --> {traceback.format_exc()}')
+            finally:
+                try:
+                    if r: r.close()
+                except:
+                    None
+
+        if createHosts['data'] != []:
+            # Post Host objects, and store JSON response with object uuids
+            try:
+                # REST call with SSL verification turned off:
+                post_data = createHosts['data']
+                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+                r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+                status_code = r.status_code
+                resp = r.text
+                print(f'Status code is: {status_code}')
+                if status_code == 201 or status_code == 202:
+                    print('Network Objects successfully created...')
+                    createHosts['result'] = r.json()['items']
+                else :
+                    print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+                    r.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                print (f'Error in connection --> {traceback.format_exc()}')
+            finally:
+                try:
+                    if r: r.close()
+                except:
+                    None
+
+        for net in createNets['result']:
+            newObjs.append({
+                'type': net['type'],
+                'name': net['name'],
+                'id': net['id']
+            })
+
+        for host in createHosts['result']:
+            newObjs.append({
+                'type': host['type'],
+                'name': host['name'],
+                'id': host['id']
+            })
+
+        # Update Object Group data
+        del objGroup['links']
+        del objGroup['metadata']
+        objGroup['objects'] = newObjs
+        objGroup['literals'] = newLits
+
+        # PUT object group
+        try:
+            # REST call with SSL verification turned off:
+            post_data = objGroup
+            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups/{objGroup["id"]}'
+            r = requests.put(url, data=json.dumps(post_data), headers=headers, verify=False)
+            status_code = r.status_code
+            resp = r.text
+            print(f'Status code is: {status_code}')
+            if status_code == 200:
+                print('Network Object Group successfully updated...')
+            else :
+                print(f'Error occurred in PUT --> {json.dumps(r.json(),indent=4)}')
+                r.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print (f'Error in connection --> {traceback.format_exc()}')
+        finally:
+            try:
+                if r: r.close()
+            except:
+                None
+
+        # Print report
+        print(f'Objects added to group:\n{json.dumps(diffMissing,indent=4)}')
+        print(f'Objects removed from group:\n{json.dumps(diffExtra,indent=4)}')
+
+
+
+
+
+
+
 #
 #
 #
@@ -1243,6 +1499,8 @@ if __name__ == "__main__":
 *                                                                                             *
 *  7. Migrate Prefilter rules to Access Rules                                                 *
 *                                                                                             *
+*  8. Update Object Group with entries from txt file                                          *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1275,6 +1533,9 @@ if __name__ == "__main__":
             elif script == '7':
                 Script = True
                 Prefilter2ACP(server,headers,username,password)
+            elif script == '8':
+                Script = True
+                ObjGroupUpdate(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1298,8 +1559,10 @@ if __name__ == "__main__":
 *                                                                                             *
 *  7. Migrate Prefilter rules to Access Rules                                                 *
 *                                                                                             *
+*  8. Update Object Group with entries from txt file                                          *
+*                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8']):
             break
