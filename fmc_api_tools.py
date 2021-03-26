@@ -1280,6 +1280,7 @@ def ObjGroupUpdate(server,headers,username,password):
                         newEntries.append(IPv4Network(lit['value']).with_prefixlen)
                         newLits.append(lit)
                 elif lit['value'] in fileEntries:
+                    newEntries.append(lit['value'])
                     newLits.append(lit)
 
         for ip in fileEntries:
