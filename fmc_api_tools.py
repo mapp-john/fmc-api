@@ -1446,7 +1446,22 @@ def ExportACPRules(server,headers,username,password):
     results=AccessToken(server,headers,username,password)
     headers['X-auth-access-token']=results[0]
     domains = results[1]
-    API_UUID = domains[0]['uuid']
+
+    Test = False
+    if len(domains) > 1:
+        while not Test:
+            print('Multiple FMC domains found:')
+            for domain in domains:
+                print(f'    {domain["name"]}')
+            choice = input('\nPlease select an FMC domain: ').strip()
+            for domain in domains:
+                if choice in domain['name']:
+                    API_UUID = domain['uuid']
+                    Test=True
+            if not Test:
+                print('Invalid Selection...\n')
+    else:
+        API_UUID = domains[0]['uuid']
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
