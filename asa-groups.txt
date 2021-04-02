@@ -1,0 +1,18 @@
+object network Net-1
+ subnet 10.1.1.0 255.255.255.0
+object network Host-1
+ host 10.1.1.1
+object network FQDN-1
+ fqdn www.google.com
+object network Range-1
+ range 10.1.1.1 10.1.1.255
+object-group network Group-1
+ network-object host 10.1.1.1
+ network-object 10.2.2.0 255.255.255.0
+object-group network Group-2
+ network-object object Net-1
+ network-object object Host-1
+ network-object object FQDN-1
+ network-object object Range-1
+ group-object Group-1
+
