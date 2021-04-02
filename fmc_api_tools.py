@@ -1426,7 +1426,7 @@ def ObjGroupUpdate(server,headers,username,password):
 #
 #
 #
-# Object Group Compare and Update
+# Export ACP and Prefilter Rules
 def ExportACPRules(server,headers,username,password):
     print ('''
 ***********************************************************************************************
