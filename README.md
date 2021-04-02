@@ -9,6 +9,7 @@
 6. Register FTD to FMC
 7. Migrate Prefilter rules to Access Rules
 8. Update Object Group with entries from txt file
+9. Export ACP and Prefilter Rules to CSV file
 
 
 _____________________________________________________________________________________________
@@ -111,4 +112,8 @@ USER INPUT NEEDED:
 10.2.2.0/24
 ```
 
+_____________________________________________________________________________________________
+### **Export ACP and Prefilter Rules to CSV file**
+
+Automatically saves CSV file to local directory
 

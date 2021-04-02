@@ -1423,6 +1423,462 @@ def ObjGroupUpdate(server,headers,username,password):
 
 
 
+#
+#
+#
+# Object Group Compare and Update
+def ExportACPRules(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                      Export ACP and Prefilter Rules to CSV file                             *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    outfile = open(f'acp_rule_export_{datetime.now().strftime("%Y-%m-%d_%H%M")}.csv','w')
+    outfile.write('FMC_NAME,ACP_NAME,ACP_TYPE,ACP_ID,R_NAME,R_ID,R_ACTION,R_SRC_ZN,R_DST_ZN,R_SRC_IP,R_DST_IP,R_VLAN,R_USERS,R_APP,R_URL,R_SRC_P,R_DST_P,R_SRC_SGT,R_DST_SGT,R_IPS,R_FILE\n')
+
+    FMC_NAME = server.replace('https://','')
+
+    print('Generating Access Token')
+    # Generate Access Token and pull domains from auth headers
+    results=AccessToken(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+    API_UUID = domains[0]['uuid']
+
+    # Get all Access Control Policies
+    print('*\n*\nCOLLECTING Access Policies...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    acp_list = GetItems(url,headers)
+
+    for acp in acp_list:
+        url = f'{acp["rules"]["links"]["self"]}?expanded=true&offset=0&limit=1000'
+        rules = GetItems(url,headers)
+        for rule in rules:
+            ACP_NAME    = rule['metadata']['accessPolicy']['name']
+            ACP_TYPE    = rule['metadata']['accessPolicy']['type']
+            ACP_ID      = rule['metadata']['accessPolicy']['id']
+            R_NAME      = rule['name']
+            R_ID        = rule['id']
+            R_ACTION    = rule['action']
+            R_SRC_ZN    = ''
+            R_DST_ZN    = ''
+            R_SRC_IP    = ''
+            R_DST_IP    = ''
+            R_VLAN      = ''
+            R_USERS     = ''
+            R_APP       = 'false'
+            R_URL       = 'false'
+            R_SRC_P     = ''
+            R_DST_P     = ''
+            R_SRC_SGT   = ''
+            R_DST_SGT   = ''
+            R_IPS       = ''
+            R_FILE      = ''
+
+            # Source Zones
+            if 'sourceZones' in rule:
+                temp_list = [i['name'] for i in rule['sourceZones']['objects']]
+                if len(temp_list) > 1:
+                    R_SRC_ZN = '; '.join(temp_list)
+                else:
+                    R_SRC_ZN = temp_list[0]
+            # Destination Zones
+            if 'destinationZones' in rule:
+                temp_list = [i['name'] for i in rule['destinationZones']['objects']]
+                if len(temp_list) > 1:
+                    R_DST_ZN = '; '.join(temp_list)
+                else:
+                    R_DST_ZN = temp_list[0]
+            # Source Networks
+            if 'sourceNetworks' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['sourceNetworks']:
+                    temp_list = [i['value'] for i in rule['sourceNetworks']['literals']]
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['sourceNetworks']:
+                    temp_list = [i['name'] for i in rule['sourceNetworks']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_SRC_IP = '; '.join([lits,objs])
+                elif lits != '':
+                    R_SRC_IP = lits
+                elif objs != '':
+                    R_SRC_IP = objs
+            # Destination Networks
+            if 'destinationNetworks' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['destinationNetworks']:
+                    temp_list = [i['value'] for i in rule['destinationNetworks']['literals']]
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['destinationNetworks']:
+                    temp_list = [i['name'] for i in rule['destinationNetworks']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_DST_IP = '; '.join([lits,objs])
+                elif lits != '':
+                    R_DST_IP = lits
+                elif objs != '':
+                    R_DST_IP = objs
+            # VLAN Tags
+            if 'vlanTags' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['vlanTags']:
+                    temp_list = []
+                    for i in rule['vlanTags']['literals']:
+                        if i['startTag'] == i['endTag']:
+                            temp_list.append(str(i['startTag']))
+                        else:
+                            temp_list.append(f'{i["startTag"]}-{i["endTag"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['vlanTags']:
+                    temp_list = [i['name'] for i in rule['vlanTags']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_VLAN = '; '.join([lits,objs])
+                elif lits != '':
+                    R_VLAN = lits
+                elif objs != '':
+                    R_VLAN = objs
+            # Users
+            if 'users' in rule:
+                temp_list = [i['name'] for i in rule['users']['objects']]
+                if len(temp_list) > 1:
+                    R_USERS = '; '.join(temp_list)
+                else:
+                    R_USERS = temp_list[0]
+            # Application Filters, Too complext to represent simply.
+            # Using true/false to represent if configured or not
+            if 'applications' in rule:
+                R_APP = 'true'
+            # URL Reputation Filters, Too complext to represent simply.
+            # Using true/false to represent if configured or not
+            if 'urls' in rule:
+                R_URL = 'true'
+            # Source Ports
+            if 'sourcePorts' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['sourcePorts']:
+                    temp_list = []
+                    for i in rule['sourcePorts']['literals']:
+                        if i['protocol'] == '6':
+                            temp_list.append(f'TCP:{i["port"]}')
+                        elif i['protocol'] == '17':
+                            temp_list.append(f'UDP:{i["port"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['sourcePorts']:
+                    temp_list = [i['name'] for i in rule['sourcePorts']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_SRC_P = '; '.join([lits,objs])
+                elif lits != '':
+                    R_SRC_P = lits
+                elif objs != '':
+                    R_SRC_P = objs
+            # Destination Ports
+            if 'destinationPorts' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['destinationPorts']:
+                    temp_list = []
+                    for i in rule['destinationPorts']['literals']:
+                        if i['protocol'] == '6':
+                            temp_list.append(f'TCP:{i["port"]}')
+                        elif i['protocol'] == '17':
+                            temp_list.append(f'UDP:{i["port"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['destinationPorts']:
+                    temp_list = [i['name'] for i in rule['destinationPorts']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_DST_P = '; '.join([lits,objs])
+                elif lits != '':
+                    R_DST_P = lits
+                elif objs != '':
+                    R_DST_P = objs
+            # Source SGTs
+            if 'sourceSecurityGroupTags' in rule:
+                temp_list = [i['name'] for i in rule['sourceSecurityGroupTags']['objects']]
+                if len(temp_list) > 1:
+                    R_SRC_SGT = '; '.join(temp_list)
+                else:
+                    R_SRC_SGT = temp_list[0]
+            # Destination SGTs
+            if 'destinationSecurityGroupTags' in rule:
+                temp_list = [i['name'] for i in rule['destinationSecurityGroupTags']['objects']]
+                if len(temp_list) > 1:
+                    R_DST_SGT = '; '.join(temp_list)
+                else:
+                    R_DST_SGT = temp_list[0]
+            # IPS Policy
+            if 'ipsPolicy' in rule:
+                R_IPS = rule['ipsPolicy']['name']
+            # File Policy
+            if 'filePolicy' in rule:
+                R_FILE = rule['filePolicy']['name']
+
+            temp_list = [
+                FMC_NAME,
+                ACP_NAME,
+                ACP_TYPE,
+                ACP_ID,
+                R_NAME,
+                R_ID,
+                R_ACTION,
+                R_SRC_ZN,
+                R_DST_ZN,
+                R_SRC_IP,
+                R_DST_IP,
+                R_VLAN,
+                R_USERS,
+                R_APP,
+                R_URL,
+                R_SRC_P,
+                R_DST_P,
+                R_SRC_SGT,
+                R_DST_SGT,
+                R_IPS,
+                R_FILE
+            ]
+            #print(temp_list)
+            outfile.write(f'{",".join(temp_list)}\n')
+
+        # GET PREFILTER RULES ALSO
+        # Get Prefilter Policy
+        print('*\n*\nCOLLECTING Applied Prefilter Policy...')
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
+        prefilter_rules = GetItems(url,headers)
+        for rule in prefilter_rules:
+            ACP_NAME    = rule['metadata']['prefilterPolicy']['name']
+            ACP_TYPE    = rule['metadata']['prefilterPolicy']['type']
+            ACP_ID      = rule['metadata']['prefilterPolicy']['id']
+            R_NAME      = rule['name']
+            R_ID        = rule['id']
+            R_ACTION    = rule['action']
+            R_SRC_ZN    = ''
+            R_DST_ZN    = ''
+            R_SRC_IP    = ''
+            R_DST_IP    = ''
+            R_VLAN      = ''
+            R_USERS     = ''
+            R_APP       = 'false'
+            R_URL       = 'false'
+            R_SRC_P     = ''
+            R_DST_P     = ''
+            R_SRC_SGT   = ''
+            R_DST_SGT   = ''
+            R_IPS       = ''
+            R_FILE      = ''
+
+            # Source Zones
+            if 'sourceInterfaces' in rule:
+                temp_list = [i['name'] for i in rule['sourceInterfaces']['objects']]
+                if len(temp_list) > 1:
+                    R_SRC_ZN = '; '.join(temp_list)
+                else:
+                    R_SRC_ZN = temp_list[0]
+            # Destination Zones
+            if 'destinationInterfaces' in rule:
+                temp_list = [i['name'] for i in rule['destinationInterfaces']['objects']]
+                if len(temp_list) > 1:
+                    R_DST_ZN = '; '.join(temp_list)
+                else:
+                    R_DST_ZN = temp_list[0]
+            # Source Networks
+            if 'sourceNetworks' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['sourceNetworks']:
+                    temp_list = [i['value'] for i in rule['sourceNetworks']['literals']]
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['sourceNetworks']:
+                    temp_list = [i['name'] for i in rule['sourceNetworks']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_SRC_IP = '; '.join([lits,objs])
+                elif lits != '':
+                    R_SRC_IP = lits
+                elif objs != '':
+                    R_SRC_IP = objs
+            # Destination Networks
+            if 'destinationNetworks' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['destinationNetworks']:
+                    temp_list = [i['value'] for i in rule['destinationNetworks']['literals']]
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['destinationNetworks']:
+                    temp_list = [i['name'] for i in rule['destinationNetworks']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_DST_IP = '; '.join([lits,objs])
+                elif lits != '':
+                    R_DST_IP = lits
+                elif objs != '':
+                    R_DST_IP = objs
+            # VLAN Tags
+            if 'vlanTags' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['vlanTags']:
+                    temp_list = []
+                    for i in rule['vlanTags']['literals']:
+                        if i['startTag'] == i['endTag']:
+                            temp_list.append(str(i['startTag']))
+                        else:
+                            temp_list.append(f'{i["startTag"]}-{i["endTag"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['vlanTags']:
+                    temp_list = [i['name'] for i in rule['vlanTags']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_VLAN = '; '.join([lits,objs])
+                elif lits != '':
+                    R_VLAN = lits
+                elif objs != '':
+                    R_VLAN = objs
+            # Source Ports
+            if 'sourcePorts' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['sourcePorts']:
+                    temp_list = []
+                    for i in rule['sourcePorts']['literals']:
+                        if i['protocol'] == '6':
+                            temp_list.append(f'TCP:{i["port"]}')
+                        elif i['protocol'] == '17':
+                            temp_list.append(f'UDP:{i["port"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['sourcePorts']:
+                    temp_list = [i['name'] for i in rule['sourcePorts']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_SRC_P = '; '.join([lits,objs])
+                elif lits != '':
+                    R_SRC_P = lits
+                elif objs != '':
+                    R_SRC_P = objs
+            # Destination Ports
+            if 'destinationPorts' in rule:
+                lits = ''
+                objs = ''
+                if 'literals' in rule['destinationPorts']:
+                    temp_list = []
+                    for i in rule['destinationPorts']['literals']:
+                        if i['protocol'] == '6':
+                            temp_list.append(f'TCP:{i["port"]}')
+                        elif i['protocol'] == '17':
+                            temp_list.append(f'UDP:{i["port"]}')
+                    if len(temp_list) > 1:
+                        lits = '; '.join(temp_list)
+                    else:
+                        lits = temp_list[0]
+                if 'objects' in rule['destinationPorts']:
+                    temp_list = [i['name'] for i in rule['destinationPorts']['objects']]
+                    if len(temp_list) > 1:
+                        objs = '; '.join(temp_list)
+                    else:
+                        objs = temp_list[0]
+                if (lits != '') and (objs != ''):
+                    R_DST_P = '; '.join([lits,objs])
+                elif lits != '':
+                    R_DST_P = lits
+                elif objs != '':
+                    R_DST_P = objs
+            # Encapsulation Ports, equivalent to Destination Ports
+            if 'encapsulationPorts' in rule:
+                if len(rule['encapsulationPorts']) > 1:
+                    R_DST_P = '; '.join(rule['encapsulationPorts'])
+                else:
+                    R_DST_P = rule['encapsulationPorts'][0]
+
+            temp_list = [
+                FMC_NAME,
+                ACP_NAME,
+                ACP_TYPE,
+                ACP_ID,
+                R_NAME,
+                R_ID,
+                R_ACTION,
+                R_SRC_ZN,
+                R_DST_ZN,
+                R_SRC_IP,
+                R_DST_IP,
+                R_VLAN,
+                R_USERS,
+                R_APP,
+                R_URL,
+                R_SRC_P,
+                R_DST_P,
+                R_SRC_SGT,
+                R_DST_SGT,
+                R_IPS,
+                R_FILE
+            ]
+            #print(temp_list)
+            outfile.write(f'{",".join(temp_list)}\n')
+
+    outfile.close()
 
 
 
@@ -1502,6 +1958,8 @@ if __name__ == "__main__":
 *                                                                                             *
 *  8. Update Object Group with entries from txt file                                          *
 *                                                                                             *
+*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1537,6 +1995,9 @@ if __name__ == "__main__":
             elif script == '8':
                 Script = True
                 ObjGroupUpdate(server,headers,username,password)
+            elif script == '9':
+                Script = True
+                ExportACPRules(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1562,8 +2023,10 @@ if __name__ == "__main__":
 *                                                                                             *
 *  8. Update Object Group with entries from txt file                                          *
 *                                                                                             *
+*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9']):
             break
