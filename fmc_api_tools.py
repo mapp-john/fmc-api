@@ -185,6 +185,7 @@ def PostNetworkObject(server,headers,username,password):
     objType = Select('Object Type',objTypes)
 
     Test = False
+
     while not Test:
         # Request Input File
         read_csv = input('Please Enter Input File /full/file/path.csv: ')
