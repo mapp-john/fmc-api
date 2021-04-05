@@ -183,12 +183,12 @@ def select(opt,L):
             print(f'  {k}: {v["key"]}')
         option = input(f'Select a {opt}: ').lower()
         if option not in options:
+            print('Invalid selection....\n')
             continue
         elif options[option]['value'] == 'None':
             return None
         else:
             return options[option]['value']
-        print('Invalid selection....\n')
 
 
 

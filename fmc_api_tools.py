@@ -1084,11 +1084,18 @@ def prefilter_to_acp(server,headers,username,password):
     ips_list.append({'None':'None'})
     ips = select('Intusion Policy',ips_list)
 
+    # Get all Variable Sets
+    print('*\n*\nCOLLECTING Variable Sets...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
+    vset_list = get_items(url,headers)
+
+    # Get Default Variable Set
+    for item in vset_list:
+        if item['name'] == 'Default-Set':
+            default_vset = item
+
+    # Select Variable Set for access rules
     if ips:
-        # Get all Variable Sets
-        print('*\n*\nCOLLECTING Variable Sets...')
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
-        vset_list = get_items(url,headers)
         vset = select('Variable Set',vset_list)
     else:
         vset = None
