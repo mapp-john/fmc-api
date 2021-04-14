@@ -70,8 +70,13 @@ ________________________________________________________________________________
 
 USER INPUT NEEDED:
 1. Select Access Policy
-2. Select Intrusion Policy and Variable Set to apply to ALL rules
-3. Select File Policy to apply to ALL rules
+2. Apply IPS and File Policy to ALL rules [y/N]
+    * Selecting NO will apply changes only to rules which currently have IPS/File policy applied
+
+3. Select Intrusion Policy and Variable Set to apply to ALL rules
+    * Selecting 'none' will NOT remove currently applied policy
+4. Select File Policy to apply to ALL rules
+    * Selecting 'none' will NOT remove currently applied policy
 
 _____________________________________________________________________________________________
 ### **Get Inventory List from FMC**

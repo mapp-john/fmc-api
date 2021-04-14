@@ -23,7 +23,8 @@ from fmc_api_module import \
         get_net_object_uuid, \
         select,\
         get_items,\
-        parse_rule
+        parse_rule,\
+        put_bulk_acp_rules
 
 # Disable SSL warning
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -148,19 +149,8 @@ def post_network_object(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 
@@ -256,19 +246,8 @@ def post_network_object_group(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 
@@ -517,9 +496,15 @@ def put_intrusion_file(server,headers,username,password):
 *                                                                                             *
 *  1. Select Access Policy                                                                    *
 *                                                                                             *
-*  2. Select Intrusion Policy and Variable Set to apply to ALL rules                          *
+*  2. Apply IPS and File Policy to ALL rules [y/N]                                            *
+*       Note: Selecting NO will apply changes only to rules                                   *
+*               which currently have IPS/File policy applied                                  *
 *                                                                                             *
-*  3. Select File Policy to apply to ALL rules                                                *
+*  3. Select Intrusion Policy and Variable Set to apply to ALL rules                          *
+*       Note: Selecting 'none' will NOT remove currently applied policy                       *
+*                                                                                             *
+*  4. Select File Policy to apply to ALL rules                                                *
+*       Note: Selecting 'none' will NOT remove currently applied policy                       *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -530,21 +515,22 @@ def put_intrusion_file(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
+
+    all_rules = False
+    Test = False
+    while not Test:
+        choice = input('Would You Like To Apply IPS and File Policy to ALL rules ? [y/N]: ').lower()
+        if choice in (['yes','ye','y']):
+            all_rules = True
+            Test = True
+        elif choice in (['no','n','']):
+            Test = True
+        else:
+            print('Invalid Selection...\n')
 
 
     # Get all Access Control Policies
@@ -586,11 +572,13 @@ def put_intrusion_file(server,headers,username,password):
     file_list.append({'None':'None'})
     filepolicy = select('File Policy',file_list)
 
-
+    # Operate only on rules that have IPS/File policy
+    if not all_rules:
+        acp_rules = [i for i in acp_rules if ('ipsPolicy' in i) or ('filePolicy' in i)]
     # For Loop to update all rules
     for item in acp_rules:
         if item ['action'] == 'ALLOW':
-            if ips:
+            if (ips) and ((all_rules) or ('ipsPolicy' in item)):
                 # Create IPS Policy
                 item ['ipsPolicy'] = {}
                 # Assign Values
@@ -603,7 +591,7 @@ def put_intrusion_file(server,headers,username,password):
                 item ['variableSet']['id'] = vset['id']
                 item ['variableSet']['name'] = vset['name']
                 item ['variableSet']['type'] = 'VariableSet'
-            if filepolicy:
+            if (filepolicy) and ((all_rules) or ('filePolicy' in item)):
                 # Create FilePolicy
                 item ['filePolicy'] = {}
                 # Assign Values
@@ -611,61 +599,26 @@ def put_intrusion_file(server,headers,username,password):
                 item ['filePolicy']['name'] = filepolicy['name']
                 item ['filePolicy']['type'] = 'FilePolicy'
 
-            # Delete Unprocessable items
-            del item['links']
-            del item['metadata']
-
-            # Create Comment List if not in item, to be able to delete
-            item ['commentHistoryList'] = {}
+        # Delete Unprocessable items
+        del item['links']
+        del item['metadata']
+        if 'commentHistoryList' in item:
             del item['commentHistoryList']
+        if ('logFiles' in item) and ('filePolicy' not in item):
+            del item['logFiles']
 
-    try:
-        put_data = acp_rules
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?bulk=true'
-        # REST call with SSL verification turned off:
-        r = requests.put(url, json=put_data, headers=headers, verify=False)
-        print(f'Performing API PUT to: {url}')
-        status_code = r.status_code
-        json_resp = r.json()
-        if status_code == 200:
-            print(f'Access Rules successfully updated')
+    if len(acp_rules) > 500:
+        print(f'*\n*\nModifying a large number of rules, please be patient...\n')
+    # Send PUT requests with a maximum 1000 items per request
+    while len(acp_rules) !=0:
+        if len(acp_rules) >= 1000:
+            put_data = acp_rules[:1000]
+            put_bulk_acp_rules(server,headers,username,password,API_UUID,acp['id'],put_data)
+            acp_rules = acp_rules[1000:]
         else:
-            print(f'Status code:--> {status_code}')
-            print(f'Error occurred in PUT --> {json_resp}')
-            r.raise_for_status()
-    except requests.exceptions.HTTPError:
-        err_resp = r.json()
-        for item in err_resp['error']['messages']:
-            # Error Handling for Access Token Timeout
-            if 'Access token invalid' in item['description']:
-                print ('Access token invalid... Attempting to Renew Token...')
-                results=access_token(server,headers,username,password)
-                headers['X-auth-access-token']=results[0]
-                try:
-
-                    # REST call with SSL verification turned off:
-                    r = requests.put(url, json=put_data, headers=headers, verify=False)
-                    print(f'Performing API PUT to: {url}')
-                    status_code = r.status_code
-                    json_resp = r.json()
-                    if (status_code == 200):
-                        print(f'Access Rules successfully updated')
-                    else:
-                        print(f'Status code:--> {status_code}')
-                        print(f'Error occurred in PUT --> {json.dumps(json_resp,indent=4)}')
-                        r.raise_for_status()
-
-
-                except requests.exceptions.HTTPError:
-                    print (f'Error in connection --> {traceback.format_exc()}')
-
-            else:
-                print (f'Error in connection --> {traceback.format_exc()}')
-    # End
-    finally:
-        if r: r.close()
-
-
+            put_data = acp_rules[:len(acp_rules)]
+            put_bulk_acp_rules(server,headers,username,password,API_UUID,acp['id'],put_data)
+            acp_rules = acp_rules[len(acp_rules):]
 
 
 
@@ -688,19 +641,8 @@ def get_inventory(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 
@@ -924,19 +866,8 @@ def register_ftd(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 
@@ -1039,22 +970,10 @@ def prefilter_to_acp(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
-
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
@@ -1216,19 +1135,9 @@ def obj_group_update(server,headers,username,password):
     results=access_token(server,headers,username,password)
     headers['X-auth-access-token']=results[0]
     domains = results[1]
-    Test = False
+
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 
@@ -1463,19 +1372,8 @@ def export_acp_rules(server,headers,username,password):
     headers['X-auth-access-token']=results[0]
     domains = results[1]
 
-    Test = False
     if len(domains) > 1:
-        while not Test:
-            print('Multiple FMC domains found:')
-            for domain in domains:
-                print(f'    {domain["name"]}')
-            choice = input('\nPlease select an FMC domain: ').strip()
-            for domain in domains:
-                if choice in domain['name']:
-                    API_UUID = domain['uuid']
-                    Test=True
-            if not Test:
-                print('Invalid Selection...\n')
+        API_UUID = select('Domain',domains)['uuid']
     else:
         API_UUID = domains[0]['uuid']
 

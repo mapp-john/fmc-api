@@ -484,3 +484,48 @@ def parse_rule(FMC_NAME,rule):
     ]
     return temp_list
 
+def put_bulk_acp_rules(server,headers,username,password,API_UUID,acp_id,put_data):
+    try:
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp_id}/accessrules?bulk=true'
+        print(f'Performing API PUT to: {url}')
+        # REST call with SSL verification turned off:
+        r = requests.put(url, json=put_data, headers=headers, verify=False)
+        status_code = r.status_code
+        json_resp = r.json()
+        if status_code == 200:
+            print(f'Access Rules successfully updated')
+        else:
+            print(f'Status code:--> {status_code}')
+            print(f'Error occurred in PUT --> {json_resp}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError:
+        err_resp = r.json()
+        for item in err_resp['error']['messages']:
+            # Error Handling for Access Token Timeout
+            if 'Access token invalid' in item['description']:
+                print ('Access token invalid... Attempting to Renew Token...')
+                results=access_token(server,headers,username,password)
+                headers['X-auth-access-token']=results[0]
+                try:
+
+                    # REST call with SSL verification turned off:
+                    r = requests.put(url, json=put_data, headers=headers, verify=False)
+                    print(f'Performing API PUT to: {url}')
+                    status_code = r.status_code
+                    json_resp = r.json()
+                    if (status_code == 200):
+                        print(f'Access Rules successfully updated')
+                    else:
+                        print(f'Status code:--> {status_code}')
+                        print(f'Error occurred in PUT --> {json.dumps(json_resp,indent=4)}')
+                        r.raise_for_status()
+
+
+                except requests.exceptions.HTTPError:
+                    print (f'Error in connection --> {traceback.format_exc()}')
+
+            else:
+                print (f'Error in connection --> {traceback.format_exc()}')
+    # End
+    finally:
+        if r: r.close()
