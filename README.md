@@ -73,9 +73,9 @@ USER INPUT NEEDED:
 2. Apply IPS and File Policy to ALL rules [y/N]
     * Selecting NO will apply changes only to rules which currently have IPS/File policy applied
 3. Select Intrusion Policy and Variable Set
-    * Selecting 'none' will NOT remove currently applied policy
+    * Selecting 'None' will NOT remove currently applied policy
 4. Select File Policy
-    * Selecting 'none' will NOT remove currently applied policy
+    * Selecting 'None' will NOT remove currently applied policy
 
 _____________________________________________________________________________________________
 ### **Get Inventory List from FMC**
