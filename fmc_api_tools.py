@@ -501,10 +501,10 @@ def put_intrusion_file(server,headers,username,password):
 *               which currently have IPS/File policy applied                                  *
 *                                                                                             *
 *  3. Select Intrusion Policy and Variable Set to apply to ALL rules                          *
-*       Note: Selecting 'none' will NOT remove currently applied policy                       *
+*       Note: Selecting 'None' will NOT remove currently applied policy                       *
 *                                                                                             *
 *  4. Select File Policy to apply to ALL rules                                                *
-*       Note: Selecting 'none' will NOT remove currently applied policy                       *
+*       Note: Selecting 'None' will NOT remove currently applied policy                       *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -572,32 +572,40 @@ def put_intrusion_file(server,headers,username,password):
     file_list.append({'None':'None'})
     filepolicy = select('File Policy',file_list)
 
+    # Operate only on ALLOW rules
+    acp_rules = [i for i in acp_rules if i['action'] == 'ALLOW']
+
     # Operate only on rules that have IPS/File policy
     if not all_rules:
         acp_rules = [i for i in acp_rules if ('ipsPolicy' in i) or ('filePolicy' in i)]
+
+    # Exit if no IPS or File Policy Selected
+    if (not ips) and (not filepolicy):
+        print(f'*\n*\nNo IPS or File policy selected, Exiting...\n')
+        return
+
     # For Loop to update all rules
     for item in acp_rules:
-        if item ['action'] == 'ALLOW':
-            if (ips) and ((all_rules) or ('ipsPolicy' in item)):
-                # Create IPS Policy
-                item ['ipsPolicy'] = {}
-                # Assign Values
-                item ['ipsPolicy']['id'] = ips['id']
-                item ['ipsPolicy']['name'] = ips['name']
-                item ['ipsPolicy']['type'] = 'IntrusionPolicy'
-                # Create VariableSet
-                item ['variableSet'] = {}
-                # Assign Values
-                item ['variableSet']['id'] = vset['id']
-                item ['variableSet']['name'] = vset['name']
-                item ['variableSet']['type'] = 'VariableSet'
-            if (filepolicy) and ((all_rules) or ('filePolicy' in item)):
-                # Create FilePolicy
-                item ['filePolicy'] = {}
-                # Assign Values
-                item ['filePolicy']['id'] = filepolicy['id']
-                item ['filePolicy']['name'] = filepolicy['name']
-                item ['filePolicy']['type'] = 'FilePolicy'
+        if (ips) and ((all_rules) or ('ipsPolicy' in item)):
+            # Create IPS Policy
+            item ['ipsPolicy'] = {}
+            # Assign Values
+            item ['ipsPolicy']['id'] = ips['id']
+            item ['ipsPolicy']['name'] = ips['name']
+            item ['ipsPolicy']['type'] = 'IntrusionPolicy'
+            # Create VariableSet
+            item ['variableSet'] = {}
+            # Assign Values
+            item ['variableSet']['id'] = vset['id']
+            item ['variableSet']['name'] = vset['name']
+            item ['variableSet']['type'] = 'VariableSet'
+        if (filepolicy) and ((all_rules) or ('filePolicy' in item)):
+            # Create FilePolicy
+            item ['filePolicy'] = {}
+            # Assign Values
+            item ['filePolicy']['id'] = filepolicy['id']
+            item ['filePolicy']['name'] = filepolicy['name']
+            item ['filePolicy']['type'] = 'FilePolicy'
 
         # Delete Unprocessable items
         del item['links']
