@@ -1,5 +1,60 @@
 # ***Cisco FMC v6.7 API Tools (Written for Python 3.6+)***
 
+## **USAGE**
+
+```
+> python3 fmc_api_tools.py
+
+***********************************************************************************************
+*                                                                                             *
+*                   Cisco FMC v6.7 API Tools (Written for Python 3.6+)                        *
+*                                                                                             *
+***********************************************************************************************
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*                                                                                             *
+*  2. API Username                                                                            *
+*                                                                                             *
+*  3. API Password                                                                            *
+*                                                                                             *
+***********************************************************************************************
+
+Please Enter FMC fqdn: fmc.domain.com
+Attempting to connect to fmc.domain.com on port 443
+Connecton successful to fmc.domain.com on port 443
+Please Enter API Username: api
+Please Enter Password:
+Re-enter Password to Verify:
+
+***********************************************************************************************
+*                                                                                             *
+* TOOLS AVAILABLE:                                                                            *
+*                                                                                             *
+*  1. Basic URL GET                                                                           *
+*                                                                                             *
+*  2. Create Network-Objects in bulk                                                          *
+*                                                                                             *
+*  3. Create Network-Objects in bulk and add to New Object-Group                              *
+*                                                                                             *
+*  4. Update IPS and/or File Policy for Access Rules                                          *
+*                                                                                             *
+*  5. Get Inventory List from FMC                                                             *
+*                                                                                             *
+*  6. Register FTD to FMC                                                                     *
+*                                                                                             *
+*  7. Migrate Prefilter rules to Access Rules                                                 *
+*                                                                                             *
+*  8. Update Object Group with entries from txt file                                          *
+*                                                                                             *
+*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*                                                                                             *
+***********************************************************************************************
+
+Please Select Tool:
+```
+
 ## **TOOLS AVAILABLE**
 1. Basic URL GET
 2. Create Network-Objects in bulk
