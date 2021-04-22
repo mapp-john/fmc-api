@@ -1,5 +1,5 @@
 # ***Cisco FMC v6.7 API Tools (Written for Python 3.6+)***
-
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/mapp-john/fmc-api)
 ## **USAGE**
 
 ```
