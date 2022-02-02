@@ -44,11 +44,13 @@ Re-enter Password to Verify:
 *                                                                                             *
 *  6. Register FTD to FMC                                                                     *
 *                                                                                             *
-*  7. Migrate Prefilter rules to Access Rules                                                 *
+*  7. Deploy Pending FTDs                                                                     *
 *                                                                                             *
-*  8. Update Object Group with entries from txt file                                          *
+*  8. Migrate Prefilter rules to Access Rules                                                 *
 *                                                                                             *
-*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*  9. Update Object Group with entries from txt file                                          *
+*                                                                                             *
+*  10. Export ACP and Prefilter Rules to CSV file                                              *
 *                                                                                             *
 ***********************************************************************************************
 
@@ -62,9 +64,10 @@ Please Select Tool:
 4. Update IPS and/or File Policy for Access Rules
 5. Get Inventory List from FMC
 6. Register FTD to FMC
-7. Migrate Prefilter rules to Access Rules
-8. Update Object Group with entries from txt file
-9. Export ACP and Prefilter Rules to CSV file
+7. Deploy Pending FTDs
+8. Migrate Prefilter rules to Access Rules
+9. Update Object Group with entries from txt file
+10. Export ACP and Prefilter Rules to CSV file
 
 
 _____________________________________________________________________________________________
@@ -125,7 +128,7 @@ ________________________________________________________________________________
 
 USER INPUT NEEDED:
 1. Select Access Policy
-2. Apply IPS and File Policy to ALL rules [y/N]
+2. Apply IPS and File Policy to ALL rules? [y/N]
     * Selecting `NO` will apply changes only to rules which currently have IPS/File policy applied
 3. Select Intrusion Policy and Variable Set
     * Selecting `None` will NOT remove currently applied policy
@@ -146,6 +149,12 @@ USER INPUT NEEDED:
 2. FTD display name
 3. FTD CLI username and password
 4. Select ACP to apply to FTD
+
+_____________________________________________________________________________________________
+### **Deploy Pending FTDs**
+
+USER INPUT NEEDED:
+1. Deploy FTDs with Traffic Interruption? [y/N]
 
 _____________________________________________________________________________________________
 ### **Migrate Prefilter rules to Access Rules**
