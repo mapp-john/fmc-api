@@ -523,7 +523,7 @@ def put_intrusion_file(server,headers,username,password):
     all_rules = False
     Test = False
     while not Test:
-        choice = input('Would You Like To Apply IPS and File Policy to ALL rules ? [y/N]: ').lower()
+        choice = input('Would You Like To Apply IPS and File Policy to ALL rules? [y/N]: ').lower()
         if choice in (['yes','ye','y']):
             all_rules = True
             Test = True
@@ -1399,15 +1399,98 @@ def export_acp_rules(server,headers,username,password):
 
         # GET PREFILTER RULES ALSO
         # Get Prefilter Policy
-        print('*\n*\nCOLLECTING Applied Prefilter Policy...')
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
-        prefilter_rules = get_items(url,headers)
-        for rule in prefilter_rules:
-            temp_list = parse_rule(FMC_NAME,rule)
-            outfile.write(f'{",".join(temp_list)}\n')
+        if "prefilterPolicySetting" in acp:
+            print('*\n*\nCOLLECTING Applied Prefilter Policy...')
+            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
+            prefilter_rules = get_items(url,headers)
+            for rule in prefilter_rules:
+                temp_list = parse_rule(FMC_NAME,rule)
+                outfile.write(f'{",".join(temp_list)}\n')
 
     outfile.close()
 
+
+#
+#
+#
+# Export ACP and Prefilter Rules
+def deploy_ftds(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                                 Deploy Pending FTDs                                         *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+***********************************************************************************************
+''')
+
+
+    FMC_NAME = server.replace('https://','')
+
+    print('Generating Access Token')
+    # Generate Access Token and pull domains from auth headers
+    results=access_token(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+
+    if len(domains) > 1:
+        API_UUID = select('Domain',domains)['uuid']
+    else:
+        API_UUID = domains[0]['uuid']
+
+    traffic_int = False
+    while True:
+        choice = input('Would You Like To Deploy FTDs With Traffic Interruption? [y/N]: ').lower()
+        if choice in (['yes','ye','y']):
+            traffic_int = True
+            break
+        elif choice in (['no','n','']):
+            break
+        else:
+            print('Invalid Selection...\n')
+
+    # Get all Access Control Policies
+    print('*\n*\nCOLLECTING Deployable FTDs...')
+    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deployment/deployabledevices?expanded=true&offset=0&limit=1000'
+    ftd_list = get_items(url,headers)
+    # include only deployable ftds
+    ftd_list = [ftd for ftd in ftd_list if ftd['canBeDeployed'] == True]
+    # if traffic interrupt false
+    if traffic_int == False:
+        ftd_list = [ftd for ftd in ftd_list if ftd['trafficInterruption'] == 'NO']
+
+    if ftd_list == []:
+        print('*\n*\nNo Available FTDs to deploy...')
+        return
+    deploy_req = {
+        'type': 'DeploymentRequest',
+        'version': ftd_list[0]['version'],
+        'forceDeploy': False,
+        'ignoreWarning': True,
+        'deviceList': [ftd['device']['id'] for ftd in ftd_list]
+    }
+
+    print(f'*\n*\nDeploying to below FTDs....\n- ' + '\n- '.join([ftd["name"] for ftd in ftd_list]))
+    # Post Deployment Request
+    try:
+        # REST call with SSL verification turned off:
+        post_data = deploy_req
+        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deployment/deploymentrequests'
+        r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+        if status_code == 202:
+            print('Deployment request successfully created...')
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
 
 
 #
@@ -1482,11 +1565,13 @@ if __name__ == "__main__":
 *                                                                                             *
 *  6. Register FTD to FMC                                                                     *
 *                                                                                             *
-*  7. Migrate Prefilter rules to Access Rules                                                 *
+*  7. Deploy Pending FTDs                                                                     *
 *                                                                                             *
-*  8. Update Object Group with entries from txt file                                          *
+*  8. Migrate Prefilter rules to Access Rules                                                 *
 *                                                                                             *
-*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*  9. Update Object Group with entries from txt file                                          *
+*                                                                                             *
+*  10. Export ACP and Prefilter Rules to CSV file                                              *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1519,11 +1604,14 @@ if __name__ == "__main__":
                 register_ftd(server,headers,username,password)
             elif script == '7':
                 Script = True
-                prefilter_to_acp(server,headers,username,password)
+                deploy_ftds(server,headers,username,password)
             elif script == '8':
                 Script = True
-                obj_group_update(server,headers,username,password)
+                prefilter_to_acp(server,headers,username,password)
             elif script == '9':
+                Script = True
+                obj_group_update(server,headers,username,password)
+            elif script == '10':
                 Script = True
                 export_acp_rules(server,headers,username,password)
             else:
@@ -1547,14 +1635,16 @@ if __name__ == "__main__":
 *                                                                                             *
 *  6. Register FTD to FMC                                                                     *
 *                                                                                             *
-*  7. Migrate Prefilter rules to Access Rules                                                 *
+*  7. Deploy Pending FTDs                                                                     *
 *                                                                                             *
-*  8. Update Object Group with entries from txt file                                          *
+*  8. Migrate Prefilter rules to Access Rules                                                 *
 *                                                                                             *
-*  9. Export ACP and Prefilter Rules to CSV file                                              *
+*  9. Update Object Group with entries from txt file                                          *
+*                                                                                             *
+*  10. Export ACP and Prefilter Rules to CSV file                                              *
 *                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10']):
             break
