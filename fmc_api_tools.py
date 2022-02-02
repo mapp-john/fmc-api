@@ -1413,7 +1413,7 @@ def export_acp_rules(server,headers,username,password):
 #
 #
 #
-# Export ACP and Prefilter Rules
+# Deploy Pending FTDs
 def deploy_ftds(server,headers,username,password):
     print ('''
 ***********************************************************************************************
