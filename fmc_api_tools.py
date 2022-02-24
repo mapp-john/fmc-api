@@ -8,6 +8,7 @@ import os,\
         random,\
         netaddr,\
         netmiko,\
+        tarfile,\
         getpass,\
         requests,\
         warnings,\
@@ -1496,6 +1497,57 @@ def deploy_ftds(server,headers,username,password):
 #
 #
 #
+# Download Snort.org Rules
+def download_snort_rules(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                             Download Snort.org rules                                         *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+***********************************************************************************************
+''')
+
+    print(f'*\n*\nDownloading Snort Signatures')
+    # Post Deployment Request
+    try:
+        # REST call with SSL verification turned off:
+        url = f'https://snort.org/downloads/community/community-rules.tar.gz'
+        r = requests.get(url, verify=False)
+        status_code = r.status_code
+        resp = r.text
+        print(f'Status code is: {status_code}')
+
+        if status_code == 200:
+            open('community-rules.tar.gz', 'wb').write(r.content)
+            file = tarfile.open('community-rules.tar.gz')
+            file.extract('community-rules/community.rules')
+            file.close()
+            file = open('community-rules/community.rules','r').readlines()
+            with open('snort.rules','w') as output:
+                for line in file:
+                    if re.search(r'\; sid\:(\d+)\;', line):
+                        sid = re.search(r'\; sid\:(\d+)\;', line).groups()[0]
+                        # Increase SID number to > 1000000
+                        output.write(re.sub(r'\; sid\:(\d+)\;', rf'; sid:{sid}0000;', line))
+                    else:
+                        output.write(line)
+            print('Snort Rules successfully downloaded...\nFile "snort.rules" modified and ready to import into FMC...')
+        else :
+            print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
+            r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print (f'Error in connection --> {traceback.format_exc()}')
+    finally:
+        try:
+            if r: r.close()
+        except:
+            None
+
+
+
+#
+#
+#
 # Run Script if main
 if __name__ == "__main__":
     #
@@ -1571,7 +1623,9 @@ if __name__ == "__main__":
 *                                                                                             *
 *  9. Update Object Group with entries from txt file                                          *
 *                                                                                             *
-*  10. Export ACP and Prefilter Rules to CSV file                                              *
+*  10. Export ACP and Prefilter Rules to CSV file                                             *
+*                                                                                             *
+*  11. Download Snort.org Rules                                                               *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1614,6 +1668,9 @@ if __name__ == "__main__":
             elif script == '10':
                 Script = True
                 export_acp_rules(server,headers,username,password)
+            elif script == '11':
+                Script = True
+                download_snort_rules(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1641,7 +1698,9 @@ if __name__ == "__main__":
 *                                                                                             *
 *  9. Update Object Group with entries from txt file                                          *
 *                                                                                             *
-*  10. Export ACP and Prefilter Rules to CSV file                                              *
+*  10. Export ACP and Prefilter Rules to CSV file                                             *
+*                                                                                             *
+*  11. Download Snort.org Rules                                                               *
 *                                                                                             *
 ***********************************************************************************************
 ''')
