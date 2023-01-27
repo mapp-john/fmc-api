@@ -151,26 +151,26 @@ def post_network_object(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     objTypes = [
         {
             'name':'Host',
-            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+            'url':f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
         },
         {
             'name':'Range',
-            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/ranges?bulk=true'
+            'url':f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/ranges?bulk=true'
         },
         {
             'name':'Network',
-            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+            'url':f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?bulk=true'
         },
         {
             'name':'FQDN',
-            'url':f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/fqdns?bulk=true'
+            'url':f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/fqdns?bulk=true'
         }
     ]
     # Select type of Object to post
@@ -248,9 +248,9 @@ def post_network_object_group(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     Test = False
     while not Test:
@@ -268,8 +268,8 @@ def post_network_object_group(server,headers,username,password):
         'groups':[]
     }
 
-    SPLIT = re.split(r'\nobject',open_read_file)
-    for item in SPLIT:
+    split = re.split(r'\nobject',open_read_file)
+    for item in split:
         obj = item.splitlines()
         name = obj[0].split()[-1]
         if obj[0].startswith('-group'):
@@ -333,7 +333,7 @@ def post_network_object_group(server,headers,username,password):
     try:
         # REST call with SSL verification turned off:
         post_data = Data['objects']['Host']
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -356,7 +356,7 @@ def post_network_object_group(server,headers,username,password):
     try:
         # REST call with SSL verification turned off:
         post_data = Data['objects']['Network']
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -379,7 +379,7 @@ def post_network_object_group(server,headers,username,password):
     try:
         # REST call with SSL verification turned off:
         post_data = Data['objects']['Range']
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/ranges?bulk=true'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/ranges?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -402,7 +402,7 @@ def post_network_object_group(server,headers,username,password):
     try:
         # REST call with SSL verification turned off:
         post_data = Data['objects']['FQDN']
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/fqdns?bulk=true'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/fqdns?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -463,7 +463,7 @@ def post_network_object_group(server,headers,username,password):
         try:
             # REST call with SSL verification turned off:
             post_data = Obj
-            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups'
+            url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networkgroups'
             r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
             status_code = r.status_code
             resp = r.text
@@ -517,9 +517,9 @@ def put_intrusion_file(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     all_rules = False
     Test = False
@@ -536,7 +536,7 @@ def put_intrusion_file(server,headers,username,password):
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
     acp_list = get_items(url,headers)
 
     acp = select('Access Control Policy',acp_list)
@@ -544,12 +544,12 @@ def put_intrusion_file(server,headers,username,password):
 
     # Get all Access Control Policy rules
     print('*\n*\nCOLLECTING Access Policy rules...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?offset=0&limit=1000&expanded=true'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies/{acp["id"]}/accessrules?offset=0&limit=1000&expanded=true'
     acp_rules = get_items(url,headers)
 
     # Get all Intrusion Policies
     print('*\n*\nCOLLECTING Intusion Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/intrusionpolicies?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/intrusionpolicies?offset=0&limit=1000'
     ips_list = get_items(url,headers)
     # Add None option
     ips_list.append({'None':'None'})
@@ -559,7 +559,7 @@ def put_intrusion_file(server,headers,username,password):
     if ips:
         # Get all Variable Sets
         print('*\n*\nCOLLECTING Variable Sets...')
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/variablesets?offset=0&limit=1000'
         vset_list = get_items(url,headers)
         vset = select('Variable Set',vset_list)
     else:
@@ -567,7 +567,7 @@ def put_intrusion_file(server,headers,username,password):
 
     # Get all File Policies
     print('*\n*\nCOLLECTING File Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/filepolicies?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/filepolicies?offset=0&limit=1000'
     file_list = get_items(url,headers)
     # Add None option
     file_list.append({'None':'None'})
@@ -651,58 +651,54 @@ def get_inventory(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     # Get all Devices
     print('*\n*\nCOLLECTING ALL INVENTORY...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords?expanded=true&offset=0&limit=1000'
-    DEVICELIST_DATA = get_items(url,headers)
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true&offset=0&limit=1000'
+    devicelist_data = get_items(url,headers)
 
     # Get all Cluster Devices
     print('*\n*\nCOLLECTING CLUSTER INVENTORY...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deviceclusters/ftddevicecluster?expanded=true&offset=0&limit=1000'
-    CLUSTER_DATA = get_items(url,headers)
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/deviceclusters/ftddevicecluster?expanded=true&offset=0&limit=1000'
+    cluster_data = get_items(url,headers)
 
     # Get all HA Devices
     print('*\n*\nCOLLECTING HA PAIR INVENTORY...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/devicehapairs/ftddevicehapairs?expanded=true&offset=0&limit=1000'
-    HA_DATA = get_items(url,headers)
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devicehapairs/ftddevicehapairs?expanded=true&offset=0&limit=1000'
+    ha_data = get_items(url,headers)
 
 
-    ## TEST PRINT
-    #print(json.dumps(DEVICELIST_DATA,indent=4))
-    #print(json.dumps(CLUSTER_DATA,indent=4))
-    #print(json.dumps(HA_DATA,indent=4))
 
     # Create Base Dict
-    INVENTORY = {
+    inventory = {
         'deviceClusters':[],
         'deviceHAPairs':[],
         'devices':[]
         }
 
-    if CLUSTER_DATA != []:
-        for item in CLUSTER_DATA:
+    if cluster_data != []:
+        for item in cluster_data:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['masterDevice'] = get_device_details(item['masterDevice']['id'],DEVICELIST_DATA)
+            temp_dict['masterDevice'] = get_device_details(item['masterDevice']['id'],devicelist_data)
             temp_dict['slaveDevices'] = []
             for item in item['slaveDevices']:
-                temp_dict['slaveDevices'].append(get_device_details(item['id'],DEVICELIST_DATA))
-            INVENTORY['deviceClusters'].append(temp_dict)
+                temp_dict['slaveDevices'].append(get_device_details(item['id'],devicelist_data))
+            inventory['deviceClusters'].append(temp_dict)
 
-    if HA_DATA != []:
-        for item in HA_DATA:
+    if ha_data != []:
+        for item in ha_data:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['primary'] = get_device_details(item['primary']['id'],DEVICELIST_DATA)
-            temp_dict['secondary'] = get_device_details(item['secondary']['id'],DEVICELIST_DATA)
-            INVENTORY['deviceHAPairs'].append(temp_dict)
+            temp_dict['primary'] = get_device_details(item['primary']['id'],devicelist_data)
+            temp_dict['secondary'] = get_device_details(item['secondary']['id'],devicelist_data)
+            inventory['deviceHAPairs'].append(temp_dict)
 
-    if DEVICELIST_DATA != []:
-        for item in DEVICELIST_DATA:
+    if devicelist_data != []:
+        for item in devicelist_data:
             temp_dict = {}
             temp_dict['name'] = item['name']
             temp_dict['model'] = item['model']
@@ -718,7 +714,7 @@ def get_inventory(server,headers,username,password):
             if 'vdbVersion' in item['metadata']: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
             if 'snortVersion' in item['metadata']: temp_dict['snort_version'] = item['metadata']['snortVersion']
             if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-            INVENTORY['devices'].append(temp_dict)
+            inventory['devices'].append(temp_dict)
 
 
     print('*\n*\nFMC Inventory compilation successful...')
@@ -730,9 +726,9 @@ def get_inventory(server,headers,username,password):
         filename += '.json'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
-            OutFile.write(json.dumps(INVENTORY,indent=4))
+            OutFile.write(json.dumps(inventory,indent=4))
     elif save in (['no','n','']):
-        print(json.dumps(INVENTORY,indent=4))
+        print(json.dumps(inventory,indent=4))
 
     # Ask if CSV output should be saved to File
     save = input('Would You Like To Save CSV Output To File? [y/N]: ').lower()
@@ -743,8 +739,8 @@ def get_inventory(server,headers,username,password):
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
         with open(filename, 'a') as OutFile:
             OutFile.write('NAME,MODEL,VERSION,STATUS,SERIAL,MODE,LICENSE,SRU,VDB,SNORT\n')
-            if INVENTORY['deviceClusters'] != []:
-                for item in INVENTORY['deviceClusters']:
+            if inventory['deviceClusters'] != []:
+                for item in inventory['deviceClusters']:
                     mode = ''
                     sru_version = ''
                     vdb_version = ''
@@ -778,8 +774,8 @@ def get_inventory(server,headers,username,password):
                         if 'snort_version' in item: snort_version = item['snort_version']
                         if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
                         OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
-            if INVENTORY['deviceHAPairs'] != []:
-                for item in INVENTORY['deviceHAPairs']:
+            if inventory['deviceHAPairs'] != []:
+                for item in inventory['deviceHAPairs']:
                     mode = ''
                     sru_version = ''
                     vdb_version = ''
@@ -818,8 +814,8 @@ def get_inventory(server,headers,username,password):
                     elif 'deviceSerialNumber' in item['secondary']:
                         serial = item['secondary']['deviceSerialNumber']
                     OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
-            if INVENTORY['devices'] != []:
-                for item in INVENTORY['devices']:
+            if inventory['devices'] != []:
+                for item in inventory['devices']:
                     serial = item['deviceSerialNumber']
                     name = item['name']
                     model = item['model']
@@ -876,9 +872,9 @@ def register_ftd(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     # Request FTD Details
     FTD_IP = input('Please enter FTD IP Address: ').strip()
@@ -890,7 +886,7 @@ def register_ftd(server,headers,username,password):
 
     # Create Get DATA JSON Dictionary to collect all ACP names
     print('*\n*\nCOLLECTING Access Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies?offset=0&limit=1000'
     acp_list = get_items(url,headers)
     if acp_list == []:
         print('*\n*\nNO ACCESS POLICY CONFIGURED...\nCREATE ACCESS POLICY IN FMC AND ATTEMPT AGAIN...')
@@ -917,7 +913,7 @@ def register_ftd(server,headers,username,password):
     }
 
 
-    url =f'{server}/api/fmc_config/v1/domain/{API_UUID}/devices/devicerecords'
+    url =f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords'
     print(f'\nPerforming API POST to: {url}...\n')
     try:
         # REST call with SSL verification turned off:
@@ -980,13 +976,13 @@ def prefilter_to_acp(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
     acp_list = get_items(url,headers)
 
     acp = select('Access Control Policy',acp_list)
@@ -994,7 +990,7 @@ def prefilter_to_acp(server,headers,username,password):
 
     # Get Prefilter Policy
     print('*\n*\nCOLLECTING Applied Prefilter Policy...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
     prefilter_list = get_items(url,headers)
 
     # Remove all 'TUNNEL' rules
@@ -1006,7 +1002,7 @@ def prefilter_to_acp(server,headers,username,password):
 
     # Get all Intrusion Policies
     print('*\n*\nCOLLECTING Intusion Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/intrusionpolicies?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/intrusionpolicies?offset=0&limit=1000'
     ips_list = get_items(url,headers)
     # Add None option
     ips_list.append({'None':'None'})
@@ -1014,7 +1010,7 @@ def prefilter_to_acp(server,headers,username,password):
 
     # Get all Variable Sets
     print('*\n*\nCOLLECTING Variable Sets...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/variablesets?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/variablesets?offset=0&limit=1000'
     vset_list = get_items(url,headers)
 
     # Get Default Variable Set
@@ -1030,7 +1026,7 @@ def prefilter_to_acp(server,headers,username,password):
 
     # Get all File Policies
     print('*\n*\nCOLLECTING File Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/filepolicies?offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/filepolicies?offset=0&limit=1000'
     file_list = get_items(url,headers)
     # Add None option
     file_list.append({'None':'None'})
@@ -1092,7 +1088,7 @@ def prefilter_to_acp(server,headers,username,password):
 
     # Post newly migrated access rules
     print('*\n*\nPosting new Access Rules...')
-    url =f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies/{acp["id"]}/accessrules?bulk=true'
+    url =f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies/{acp["id"]}/accessrules?bulk=true'
     print(f'\nPerforming API POST to: {url}...\n')
     try:
         # REST call with SSL verification turned off:
@@ -1146,9 +1142,9 @@ def obj_group_update(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     objGroupName = input('Please Enter Object Group Name: ').strip()
     Test = False
@@ -1166,9 +1162,9 @@ def obj_group_update(server,headers,username,password):
 
 
     # Collect all Network objects
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?expanded=true&offset=0&limit=1000'
     networks = get_items(url,headers)
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?expanded=true&offset=0&limit=1000'
     hosts = get_items(url,headers)
 
 
@@ -1265,7 +1261,7 @@ def obj_group_update(server,headers,username,password):
             try:
                 # REST call with SSL verification turned off:
                 post_data = createNets['data']
-                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networks?bulk=true'
+                url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?bulk=true'
                 r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
                 status_code = r.status_code
                 resp = r.text
@@ -1289,7 +1285,7 @@ def obj_group_update(server,headers,username,password):
             try:
                 # REST call with SSL verification turned off:
                 post_data = createHosts['data']
-                url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/hosts?bulk=true'
+                url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
                 r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
                 status_code = r.status_code
                 resp = r.text
@@ -1332,7 +1328,7 @@ def obj_group_update(server,headers,username,password):
         try:
             # REST call with SSL verification turned off:
             post_data = objGroup
-            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/object/networkgroups/{objGroup["id"]}'
+            url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networkgroups/{objGroup["id"]}'
             r = requests.put(url, data=json.dumps(post_data), headers=headers, verify=False)
             status_code = r.status_code
             resp = r.text
@@ -1373,7 +1369,7 @@ def export_acp_rules(server,headers,username,password):
     outfile = open(f'acp_rule_export_{datetime.now().strftime("%Y-%m-%d_%H%M")}.csv','w')
     outfile.write('FMC_NAME,ACP_NAME,ACP_TYPE,ACP_ID,R_NAME,R_ID,R_ACTION,R_SRC_ZN,R_DST_ZN,R_SRC_IP,R_DST_IP,R_VLAN,R_USERS,R_APP,R_URL,R_SRC_P,R_DST_P,R_SRC_SGT,R_DST_SGT,R_IPS,R_FILE\n')
 
-    FMC_NAME = server.replace('https://','')
+    fmc_name = server.replace('https://','')
 
     print('Generating Access Token')
     # Generate Access Token and pull domains from auth headers
@@ -1382,30 +1378,30 @@ def export_acp_rules(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
     acp_list = get_items(url,headers)
 
     for acp in acp_list:
         url = f'{acp["rules"]["links"]["self"]}?expanded=true&offset=0&limit=1000'
         rules = get_items(url,headers)
         for rule in rules:
-            temp_list = parse_rule(FMC_NAME,rule)
+            temp_list = parse_rule(fmc_name,rule)
             outfile.write(f'{",".join(temp_list)}\n')
 
         # GET PREFILTER RULES ALSO
         # Get Prefilter Policy
         if "prefilterPolicySetting" in acp:
             print('*\n*\nCOLLECTING Applied Prefilter Policy...')
-            url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
+            url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/prefilterpolicies/{acp["prefilterPolicySetting"]["id"]}/prefilterrules?expanded=true&offset=0&limit=1000'
             prefilter_rules = get_items(url,headers)
             for rule in prefilter_rules:
-                temp_list = parse_rule(FMC_NAME,rule)
+                temp_list = parse_rule(fmc_name,rule)
                 outfile.write(f'{",".join(temp_list)}\n')
 
     outfile.close()
@@ -1423,9 +1419,6 @@ def deploy_ftds(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-
-
     print('Generating Access Token')
     # Generate Access Token and pull domains from auth headers
     results=access_token(server,headers,username,password)
@@ -1433,9 +1426,9 @@ def deploy_ftds(server,headers,username,password):
     domains = results[1]
 
     if len(domains) > 1:
-        API_UUID = select('Domain',domains)['uuid']
+        api_uuid = select('Domain',domains)['uuid']
     else:
-        API_UUID = domains[0]['uuid']
+        api_uuid = domains[0]['uuid']
 
     traffic_int = False
     while True:
@@ -1450,7 +1443,7 @@ def deploy_ftds(server,headers,username,password):
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Deployable FTDs...')
-    url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deployment/deployabledevices?expanded=true&offset=0&limit=1000'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/deployment/deployabledevices?expanded=true&offset=0&limit=1000'
     ftd_list = get_items(url,headers)
     # include only deployable ftds
     ftd_list = [ftd for ftd in ftd_list if ftd['canBeDeployed'] == True]
@@ -1474,7 +1467,7 @@ def deploy_ftds(server,headers,username,password):
     try:
         # REST call with SSL verification turned off:
         post_data = deploy_req
-        url = f'{server}/api/fmc_config/v1/domain/{API_UUID}/deployment/deploymentrequests'
+        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/deployment/deploymentrequests'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -1639,6 +1632,110 @@ def delete_ftds_from_fmc(server,headers,username,password):
 
 
 
+#
+#
+#
+# Delete FTDs from FMC
+def ftd_manager_edit(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                    Update Object Group with entries from txt file                           *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. Primary FMC UUID to edit (obtain from FMC CLI "show version")                           *
+*                                                                                             *
+*  2. New IP address for Primary FMC                                                          *
+*                                                                                             *
+*  3. Secondary FMC UUID to edit                                                              *
+*                                                                                             *
+*  4. New IP address for Secondary FMC (obtain from FMC CLI "show version")                   *
+*                                                                                             *
+*  5. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3"           *
+*                                                                                             *
+*  6. FTD SSH port, if not default                                                            *
+*                                                                                             *
+*  7. Username and Password for FTD SSH                                                       *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+
+    results=access_token(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+
+    if len(domains) > 1:
+        api_uuid = select('Domain',domains)['uuid']
+    else:
+        api_uuid = domains[0]['uuid']
+
+    edit_pri = False
+    choice = ''
+    while True:
+        choice = input('Would you like to edit Primary FMC IP for FTDs? [y/N]: ').lower()
+        if choice in (['yes','ye','y']):
+            pri_fmc_uuid = input('Please enter Primary FMC UUID: ').strip()
+            if pri_fmc_uuid != '':
+                edit_pri = True
+                pri_fmc_ip = input('Please enter new Primary FMC Hostname/IP: ').strip()
+                break
+            else:
+                print('Invalid entry...\n')
+        elif choice in (['no','n','']):
+            break
+        else:
+            print('Invalid Selection...\n')
+
+    edit_sec = False
+    choice = ''
+    while True:
+        choice = input('Would you like to edit Secondary FMC IP for FTDs? [y/N]: ').lower()
+        if choice in (['yes','ye','y']):
+            sec_fmc_uuid = input('Please enter Secondary FMC UUID: ').strip()
+            if sec_fmc_uuid != '':
+                edit_sec = True
+                sec_fmc_ip = input('Please enter new Secondary FMC Hostname/IP: ').strip()
+                break
+            else:
+                print('Invalid entry...\n')
+        elif choice in (['no','n','']):
+            break
+        else:
+            print('Invalid Selection...\n')
+
+    # Request Details
+    ftds = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
+    ssh_port = input('Please enter SSH port, if not default [22]: ').strip()
+    ssh_port = '22' if ssh_port == '' else ssh_port
+    ftd_user = input('Please enter FTD username: ').strip()
+    ftd_pass = define_password()
+
+
+    for ftd in ftds:
+        ftd = ftd.strip()
+        try:
+            # Connect to FTD, and initiate registration
+            print('\nConnecting to FTD...')
+            connection = netmiko.ConnectHandler(ip=ftd, device_type='autodetect', username=ftd_user,
+                                                password=ftd_pass, port=ssh_port, global_delay_factor=6)
+            if edit_pri:
+                print('\nEditing Primary FMC IP...')
+                output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
+                print(output)
+            if edit_sec:
+                print('\nEditing Secondary FMC IP...')
+                output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
+                print(output)
+            connection.disconnect()
+            print('FTD Registration command successful...')
+        except:
+            print (f'Error in SSH connection --> {traceback.format_exc()}')
+            connection.disconnect()
+
+
+
 
 #
 #
@@ -1724,6 +1821,8 @@ if __name__ == "__main__":
 *                                                                                             *
 *  12. Delete FTD devices from FMC                                                            *
 *                                                                                             *
+*  13. Edit manager config for FTDs in bulk                                                   *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1771,6 +1870,9 @@ if __name__ == "__main__":
             elif script == '12':
                 Script = True
                 delete_ftds_from_fmc(server,headers,username,password)
+            elif script == '13':
+                Script = True
+                ftd_manager_edit(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1804,8 +1906,10 @@ if __name__ == "__main__":
 *                                                                                             *
 *  12. Delete FTD devices from FMC                                                            *
 *                                                                                             *
+*  13. Edit manager config for FTDs in bulk                                                   *
+*                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12','13']):
             break
