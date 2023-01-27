@@ -1425,7 +1425,6 @@ def deploy_ftds(server,headers,username,password):
 ''')
 
 
-    FMC_NAME = server.replace('https://','')
 
     print('Generating Access Token')
     # Generate Access Token and pull domains from auth headers
@@ -1543,6 +1542,102 @@ def download_snort_rules(server,headers,username,password):
         except:
             None
 
+#
+#
+#
+# Delete FTDs from FMC
+def delete_ftds_from_fmc(server,headers,username,password):
+    print ('''
+***********************************************************************************************
+*                    Update Object Group with entries from txt file                           *
+*_____________________________________________________________________________________________*
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. Search for FTD by name                                                                  *
+*                                                                                             *
+*  2. Search for FTD by model                                                                 *
+*                                                                                             *
+*  3. Verify FTDs to be deleted                                                               *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+
+    results=access_token(server,headers,username,password)
+    headers['X-auth-access-token']=results[0]
+    domains = results[1]
+
+    if len(domains) > 1:
+        api_uuid = select('Domain',domains)['uuid']
+    else:
+        api_uuid = domains[0]['uuid']
+
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true'
+    devices = get_items(url,headers)
+    del_devs = set()
+    search_terms = []
+    term = ''
+    while term != 'DONE':
+        term = input('Please enter a FTD name string to search. Enter "DONE" to finish: ')
+        if term != 'DONE':
+            search_terms.append(term)
+    for d in devices:
+        # Match on Name contains
+        if any(i.lower() in d['name'].lower() for i in search_terms):
+            del_devs.add((d['name'],d['id'],d['model']))
+
+    search_terms = []
+    term = ''
+    while term != 'DONE':
+        term = input('Please enter a FTD model string to search (IE. "9000", "VMWare"). Enter "DONE" to finish: ')
+        if term != 'DONE':
+            search_terms.append(term)
+
+    for d in devices:
+        # Match on Model type
+        if any(i.lower() in d['model'].lower() for i in search_terms):
+            del_devs.add((d['name'],d['id'],d['model']))
+
+
+    del_length = len(del_devs)
+    count = 0
+
+
+    if del_length > 0:
+        for d in del_devs:
+            print(d[0],d[1],d[2])
+        delete = input('Do you wish to delete the above devices? [y/N]: ').lower()
+        if delete in ['y','ye','yes']:
+            for d in del_devs:
+                count += 1
+                id = d[1]
+                url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords/{id}'
+                try:
+                    r = requests.delete(url, headers=headers, verify=False)
+                    status_code = r.status_code
+                    if status_code == 429:
+                        print("Rate limit reached. Waiting 60 seconds before continuing...")
+                        time.sleep(61)
+                        r = requests.delete(url, headers=headers, verify=False)
+                        status_code = r.status_code
+                        if status_code != 400:
+                            print(f'\n{d[0]} has been removed. {count} of {del_length}. Status code: {status_code}\n')
+                        else:
+                            print(f'\n{d[0]} failed to be removed! Status code: {status_code}\n')
+                    elif status_code == 400:
+                        print(f'\n{d[0]} failed to be removed! {count} of {del_length}. Status code: {status_code}\n')
+                    else:
+                        print(f'\n{d[0]} has been removed. {count} of {del_length}. Status code: {status_code}\n')
+
+                except requests.exceptions.HTTPError as err:
+                    print (f'Error in connection --> {traceback.format_exc()}')
+        else:
+            print("\nNothing to delete. Closing...")
+    else:
+        print("\nNothing to delete. Closing...")
+
+
 
 
 #
@@ -1627,6 +1722,8 @@ if __name__ == "__main__":
 *                                                                                             *
 *  11. Download Snort.org Rules                                                               *
 *                                                                                             *
+*  12. Delete FTD devices from FMC                                                            *
+*                                                                                             *
 ***********************************************************************************************
 ''')
 
@@ -1671,6 +1768,9 @@ if __name__ == "__main__":
             elif script == '11':
                 Script = True
                 download_snort_rules(server,headers,username,password)
+            elif script == '12':
+                Script = True
+                delete_ftds_from_fmc(server,headers,username,password)
             else:
                 print('INVALID ENTRY... ')
 
@@ -1702,8 +1802,10 @@ if __name__ == "__main__":
 *                                                                                             *
 *  11. Download Snort.org Rules                                                               *
 *                                                                                             *
+*  12. Delete FTD devices from FMC                                                            *
+*                                                                                             *
 ***********************************************************************************************
 ''')
         Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10']):
+        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12']):
             break
