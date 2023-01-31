@@ -1654,7 +1654,7 @@ def ftd_manager_edit(server,headers,username,password):
 *                                                                                             *
 *  5. CSV File for FTD SSH details; format: "ftd_hostname, ssh_port, ftd_user, ftd_pass"      *
 *                                                                                             *
-*  6. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3"           *
+*  6. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3")          *
 *                                                                                             *
 *  7. FTD SSH port, if not default                                                            *
 *                                                                                             *
