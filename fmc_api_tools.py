@@ -1648,15 +1648,17 @@ def ftd_manager_edit(server,headers,username,password):
 *                                                                                             *
 *  2. New IP address for Primary FMC                                                          *
 *                                                                                             *
-*  3. Secondary FMC UUID to edit                                                              *
+*  3. Secondary FMC UUID to edit (obtain from FMC CLI "show version")                         *
 *                                                                                             *
-*  4. New IP address for Secondary FMC (obtain from FMC CLI "show version")                   *
+*  4. New IP address for Secondary FMC                                                        *
 *                                                                                             *
-*  5. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3"           *
+*  5. CSV File for FTD SSH details; format: "ftd_hostname, ssh_port, ftd_user, ftd_pass"      *
 *                                                                                             *
-*  6. FTD SSH port, if not default                                                            *
+*  6. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3"           *
 *                                                                                             *
-*  7. Username and Password for FTD SSH                                                       *
+*  7. FTD SSH port, if not default                                                            *
+*                                                                                             *
+*  8. Username and Password for FTD SSH                                                       *
 *                                                                                             *
 ***********************************************************************************************
 ''')
@@ -1705,34 +1707,80 @@ def ftd_manager_edit(server,headers,username,password):
         else:
             print('Invalid Selection...\n')
 
-    # Request Details
-    ftds = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
-    ssh_port = input('Please enter SSH port, if not default [22]: ').strip()
-    ssh_port = '22' if ssh_port == '' else ssh_port
-    ftd_user = input('Please enter FTD username: ').strip()
-    ftd_pass = define_password()
+    choice = ''
+    ftd_file = False
+    while True:
+        choice = input('Would you like to use CSV file for FTD details? [y/N]: ').lower()
+        if choice in (['yes','ye','y']):
+            read_file = input('Please enter file path to csv file: ').strip()
+            if os.path.isfile(read_file):
+                # Read csv file
+                open_read_file = open(read_file, 'r', encoding='utf-8-sig').read()
+                ftd_file = True
+                break
+            else:
+                print('INVALID INPUT FILE PATH...')
+        elif choice in (['no','n','']):
+            break
+        else:
+            print('Invalid Selection...\n')
+
+    ftds = []
+    if ftd_file:
+        entries = open_read_file.splitlines()
+        for i in entries:
+            i = i.split(',')
+            ftds.append([i[0].strip(), i[1].strip(), i[2].strip(), i[3].strip()])
+    else:
+        # Request Details
+        ftd_ips = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
+        ssh_port = input('Please enter SSH port, if not default [22]: ').strip()
+        ssh_port = '22' if ssh_port == '' else ssh_port
+        ftd_user = input('Please enter FTD username: ').strip()
+        ftd_pass = define_password()
+        for i in ftd_ips:
+            ftds.append([i.strip(), ssh_port, ftd_user, ftd_pass])
 
 
     for ftd in ftds:
-        ftd = ftd.strip()
+        ftd_ip = ftd[0]
+        ftd_port = ftd[1]
+        ftd_user = ftd[2]
+        ftd_pass = ftd[3]
         try:
             # Connect to FTD, and initiate registration
-            print('\nConnecting to FTD...')
-            connection = netmiko.ConnectHandler(ip=ftd, device_type='autodetect', username=ftd_user,
-                                                password=ftd_pass, port=ssh_port, global_delay_factor=6)
-            if edit_pri:
-                print('\nEditing Primary FMC IP...')
-                output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
-                print(output)
-            if edit_sec:
-                print('\nEditing Secondary FMC IP...')
-                output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
-                print(output)
+            print(f'\nConnecting to FTD {ftd}...')
+            connection = netmiko.ConnectHandler(ip=ftd_ip, device_type='autodetect', username=ftd_user,
+                                                password=ftd_pass, port=ftd_port, global_delay_factor=6)
+            # Get FTD version
+            output = connection.send_command('show version')
+            for line in output.splitlines():
+                if line.startswith('Model'):
+                    version = line.split('Version')[1].split()[0]
+
+
+            if version.startswith('7.2'):
+                if edit_pri:
+                    print('\nEditing Primary FMC IP...')
+                    output = connection.send_command(f'configure manager edit {pri_fmc_uuid} hostname {pri_fmc_ip} ')
+                    print(output)
+                if edit_sec:
+                    print('\nEditing Secondary FMC IP...')
+                    output = connection.send_command(f'configure manager edit {sec_fmc_uuid} hostname {sec_fmc_ip} ')
+                    print(output)
+            else:
+                if edit_pri:
+                    print('\nEditing Primary FMC IP...')
+                    output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
+                    print(output)
+                if edit_sec:
+                    print('\nEditing Secondary FMC IP...')
+                    output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
+                    print(output)
             connection.disconnect()
-            print('FTD Registration command successful...')
+            print('FTD manager edited successfully...')
         except:
             print (f'Error in SSH connection --> {traceback.format_exc()}')
-            connection.disconnect()
 
 
 
