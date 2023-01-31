@@ -1673,39 +1673,46 @@ def ftd_manager_edit(server,headers,username,password):
     else:
         api_uuid = domains[0]['uuid']
 
-    edit_pri = False
-    choice = ''
     while True:
-        choice = input('Would you like to edit Primary FMC IP for FTDs? [y/N]: ').lower()
-        if choice in (['yes','ye','y']):
-            pri_fmc_uuid = input('Please enter Primary FMC UUID: ').strip()
-            if pri_fmc_uuid != '':
-                edit_pri = True
-                pri_fmc_ip = input('Please enter new Primary FMC Hostname/IP: ').strip()
+        edit_pri = False
+        choice = ''
+        while True:
+            choice = input('Would you like to edit Primary FMC IP for FTDs? [y/N]: ').lower()
+            if choice in (['yes','ye','y']):
+                pri_fmc_uuid = input('Please enter Primary FMC UUID: ').strip()
+                if pri_fmc_uuid != '':
+                    edit_pri = True
+                    pri_fmc_ip = input('Please enter new Primary FMC Hostname/IP: ').strip()
+                    break
+                else:
+                    print('Invalid entry...\n')
+            elif choice in (['no','n','']):
                 break
             else:
-                print('Invalid entry...\n')
-        elif choice in (['no','n','']):
-            break
-        else:
-            print('Invalid Selection...\n')
+                print('Invalid Selection...\n')
 
-    edit_sec = False
-    choice = ''
-    while True:
-        choice = input('Would you like to edit Secondary FMC IP for FTDs? [y/N]: ').lower()
-        if choice in (['yes','ye','y']):
-            sec_fmc_uuid = input('Please enter Secondary FMC UUID: ').strip()
-            if sec_fmc_uuid != '':
-                edit_sec = True
-                sec_fmc_ip = input('Please enter new Secondary FMC Hostname/IP: ').strip()
+        edit_sec = False
+        choice = ''
+        while True:
+            choice = input('Would you like to edit Secondary FMC IP for FTDs? [y/N]: ').lower()
+            if choice in (['yes','ye','y']):
+                sec_fmc_uuid = input('Please enter Secondary FMC UUID: ').strip()
+                if sec_fmc_uuid != '':
+                    edit_sec = True
+                    sec_fmc_ip = input('Please enter new Secondary FMC Hostname/IP: ').strip()
+                    break
+                else:
+                    print('Invalid entry...\n')
+            elif choice in (['no','n','']):
                 break
             else:
-                print('Invalid entry...\n')
-        elif choice in (['no','n','']):
-            break
-        else:
+                print('Invalid Selection...\n')
+        # Break While loop if at least one is selected
+        if (not edit_pri) and (not edit_sec):
             print('Invalid Selection...\n')
+        else:
+            break
+
 
     choice = ''
     ftd_file = False
@@ -1749,7 +1756,7 @@ def ftd_manager_edit(server,headers,username,password):
         ftd_pass = ftd[3]
         try:
             # Connect to FTD, and initiate registration
-            print(f'\nConnecting to FTD {ftd}...')
+            print(f'\nConnecting to FTD {ftd_ip}:{ftd_port}...')
             connection = netmiko.ConnectHandler(ip=ftd_ip, device_type='autodetect', username=ftd_user,
                                                 password=ftd_pass, port=ftd_port, global_delay_factor=6)
             # Get FTD version
@@ -1758,29 +1765,44 @@ def ftd_manager_edit(server,headers,username,password):
                 if line.startswith('Model'):
                     version = line.split('Version')[1].split()[0]
 
-
-            if version.startswith('7.2'):
-                if edit_pri:
-                    print('\nEditing Primary FMC IP...')
-                    output = connection.send_command(f'configure manager edit {pri_fmc_uuid} hostname {pri_fmc_ip} ')
-                    print(output)
-                if edit_sec:
-                    print('\nEditing Secondary FMC IP...')
-                    output = connection.send_command(f'configure manager edit {sec_fmc_uuid} hostname {sec_fmc_ip} ')
-                    print(output)
-            else:
-                if edit_pri:
-                    print('\nEditing Primary FMC IP...')
-                    output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
-                    print(output)
-                if edit_sec:
-                    print('\nEditing Secondary FMC IP...')
-                    output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
-                    print(output)
-            connection.disconnect()
-            print('FTD manager edited successfully...')
+            try:
+                if version.startswith('7.2'):
+                    if edit_pri:
+                        print('\nEditing Primary FMC IP...')
+                        output = connection.send_command(f'configure manager edit {pri_fmc_uuid} hostname {pri_fmc_ip} ')
+                        print(output)
+                        if 'Error' in output:
+                            raise netmiko.ssh_exception.ConfigInvalidException()
+                    if edit_sec:
+                        print('\nEditing Secondary FMC IP...')
+                        output = connection.send_command(f'configure manager edit {sec_fmc_uuid} hostname {sec_fmc_ip} ')
+                        print(output)
+                        if 'Error' in output:
+                            raise netmiko.ssh_exception.ConfigInvalidException()
+                else:
+                    if edit_pri:
+                        print('\nEditing Primary FMC IP...')
+                        output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
+                        print(output)
+                        if 'Error' in output:
+                            raise netmiko.ssh_exception.ConfigInvalidException()
+                    if edit_sec:
+                        print('\nEditing Secondary FMC IP...')
+                        output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
+                        print(output)
+                        if 'Error' in output:
+                            raise netmiko.ssh_exception.ConfigInvalidException()
+                print(f'FTD managers edited successfully for {ftd_ip}...')
+                output = connection.send_command('show managers')
+                print(output)
+                connection.disconnect()
+            except:
+                print (f'Error in command execution for {ftd_ip}--> {traceback.format_exc()}')
+                output = connection.send_command('show managers')
+                print(output)
+                connection.disconnect()
         except:
-            print (f'Error in SSH connection --> {traceback.format_exc()}')
+            print (f'Error in SSH connection for {ftd_ip}--> {traceback.format_exc()}')
 
 
 
