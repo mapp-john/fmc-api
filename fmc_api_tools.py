@@ -1797,12 +1797,12 @@ def ftd_manager_edit(server,headers,username,password):
                 print(output)
                 connection.disconnect()
             except:
-                print (f'Error in command execution for {ftd_ip}--> {traceback.format_exc()}')
+                print (f'Error in command execution for {ftd_ip} --> {traceback.format_exc()}')
                 output = connection.send_command('show managers')
                 print(output)
                 connection.disconnect()
         except:
-            print (f'Error in SSH connection for {ftd_ip}--> {traceback.format_exc()}')
+            print (f'Error in SSH connection for {ftd_ip} --> {traceback.format_exc()}')
 
 
 
