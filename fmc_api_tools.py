@@ -1639,7 +1639,7 @@ def delete_ftds_from_fmc(server,headers,username,password):
 def ftd_manager_edit(server,headers,username,password):
     print ('''
 ***********************************************************************************************
-*                    Update Object Group with entries from txt file                           *
+*                         Edit manager config for FTDs in bulk                                *
 *_____________________________________________________________________________________________*
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
@@ -1662,16 +1662,6 @@ def ftd_manager_edit(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
 
     while True:
         edit_pri = False
@@ -1726,7 +1716,7 @@ def ftd_manager_edit(server,headers,username,password):
                 ftd_file = True
                 break
             else:
-                print('INVALID INPUT FILE PATH...')
+                print('Invalid input file path...\n')
         elif choice in (['no','n','']):
             break
         else:
@@ -1756,7 +1746,7 @@ def ftd_manager_edit(server,headers,username,password):
         ftd_pass = ftd[3]
         try:
             # Connect to FTD, and initiate registration
-            print(f'\nConnecting to FTD {ftd_ip}:{ftd_port}...')
+            print(f'Connecting to FTD {ftd_ip}:{ftd_port}...\n')
             connection = netmiko.ConnectHandler(ip=ftd_ip, device_type='autodetect', username=ftd_user,
                                                 password=ftd_pass, port=ftd_port, global_delay_factor=6)
             # Get FTD version
@@ -1764,34 +1754,35 @@ def ftd_manager_edit(server,headers,username,password):
             for line in output.splitlines():
                 if line.startswith('Model'):
                     version = line.split('Version')[1].split()[0]
+                    version = float(f'{version.split(".")[0]}.{version.split(".")[1]}')
 
             try:
-                if version.startswith('7.2'):
+                if version >= 7.2:
                     if edit_pri:
-                        print('\nEditing Primary FMC IP...')
+                        print('Editing Primary FMC IP...')
                         output = connection.send_command(f'configure manager edit {pri_fmc_uuid} hostname {pri_fmc_ip} ')
-                        print(output)
                         if 'Error' in output:
-                            raise netmiko.ssh_exception.ConfigInvalidException()
+                            raise netmiko.ssh_exception.ConfigInvalidException(output)
+                        print(output)
                     if edit_sec:
-                        print('\nEditing Secondary FMC IP...')
+                        print('Editing Secondary FMC IP...')
                         output = connection.send_command(f'configure manager edit {sec_fmc_uuid} hostname {sec_fmc_ip} ')
-                        print(output)
                         if 'Error' in output:
-                            raise netmiko.ssh_exception.ConfigInvalidException()
+                            raise netmiko.ssh_exception.ConfigInvalidException(output)
+                        print(output)
                 else:
                     if edit_pri:
-                        print('\nEditing Primary FMC IP...')
+                        print('Editing Primary FMC IP...')
                         output = connection.send_command(f'configure manager edit {pri_fmc_uuid} {pri_fmc_ip} ')
-                        print(output)
                         if 'Error' in output:
-                            raise netmiko.ssh_exception.ConfigInvalidException()
+                            raise netmiko.ssh_exception.ConfigInvalidException(output)
+                        print(output)
                     if edit_sec:
-                        print('\nEditing Secondary FMC IP...')
+                        print('Editing Secondary FMC IP...')
                         output = connection.send_command(f'configure manager edit {sec_fmc_uuid} {sec_fmc_ip} ')
-                        print(output)
                         if 'Error' in output:
-                            raise netmiko.ssh_exception.ConfigInvalidException()
+                            raise netmiko.ssh_exception.ConfigInvalidException(output)
+                        print(output)
                 print(f'FTD managers edited successfully for {ftd_ip}...')
                 output = connection.send_command('show managers')
                 print(output)
@@ -1799,7 +1790,7 @@ def ftd_manager_edit(server,headers,username,password):
             except:
                 print (f'Error in command execution for {ftd_ip} --> {traceback.format_exc()}')
                 output = connection.send_command('show managers')
-                print(output)
+                print(f'show manager output for {ftd_ip}...\n{output}')
                 connection.disconnect()
         except:
             print (f'Error in SSH connection for {ftd_ip} --> {traceback.format_exc()}')
