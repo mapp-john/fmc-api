@@ -1723,7 +1723,7 @@ def ftd_manager_edit(server,headers,username,password):
                             ftds.append([i[0].strip(), i[1].strip(), i[2].strip(), i[3].strip()])
                     break
                 except:
-                    print(f'Error reading input file...\n{traceback.format_exc()}')
+                    print(f'Error reading input file, please check format...\n{traceback.format_exc()}')
             else:
                 print('Invalid input file path...\n')
         elif choice in (['no','n','']):
