@@ -1635,7 +1635,7 @@ def delete_ftds_from_fmc(server,headers,username,password):
 #
 #
 #
-# Delete FTDs from FMC
+# Edit manager config for FTDs
 def ftd_manager_edit(server,headers,username,password):
     print ('''
 ***********************************************************************************************
@@ -1713,8 +1713,17 @@ def ftd_manager_edit(server,headers,username,password):
             if os.path.isfile(read_file):
                 # Read csv file
                 open_read_file = open(read_file, 'r', encoding='utf-8-sig').read()
-                ftd_file = True
-                break
+                ftds = []
+                try:
+                    for i in open_read_file.splitlines():
+                        if i == '':
+                            pass
+                        else:
+                            i = i.split(',')
+                            ftds.append([i[0].strip(), i[1].strip(), i[2].strip(), i[3].strip()])
+                    break
+                except:
+                    print(f'Error reading input file...\n{traceback.format_exc()}')
             else:
                 print('Invalid input file path...\n')
         elif choice in (['no','n','']):
@@ -1722,12 +1731,6 @@ def ftd_manager_edit(server,headers,username,password):
         else:
             print('Invalid Selection...\n')
 
-    ftds = []
-    if ftd_file:
-        entries = open_read_file.splitlines()
-        for i in entries:
-            i = i.split(',')
-            ftds.append([i[0].strip(), i[1].strip(), i[2].strip(), i[3].strip()])
     else:
         # Request Details
         ftd_ips = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
