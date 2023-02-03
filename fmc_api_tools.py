@@ -18,14 +18,15 @@ from ipaddress import IPv4Network
 
 # Import custom modules from file
 from fmc_api_module import \
-        define_password,\
-        access_token,\
-        get_device_details,\
-        get_net_object_uuid, \
         select,\
         get_items,\
         parse_rule,\
-        put_bulk_acp_rules
+        access_token,\
+        get_fmc_details,\
+        define_password,\
+        put_bulk_acp_rules,\
+        get_device_details,\
+        get_net_object_uuid
 
 # Disable SSL warning
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -1490,7 +1491,7 @@ def deploy_ftds(server,headers,username,password):
 #
 #
 # Download Snort.org Rules
-def download_snort_rules(server,headers,username,password):
+def download_snort_rules():
     print ('''
 ***********************************************************************************************
 *                             Download Snort.org rules                                         *
@@ -1542,7 +1543,7 @@ def download_snort_rules(server,headers,username,password):
 def delete_ftds_from_fmc(server,headers,username,password):
     print ('''
 ***********************************************************************************************
-*                    Update Object Group with entries from txt file                           *
+*                    Delete FTDs from FMC using Name or Model search                          *
 *_____________________________________________________________________________________________*
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
@@ -1636,7 +1637,7 @@ def delete_ftds_from_fmc(server,headers,username,password):
 #
 #
 # Edit manager config for FTDs
-def ftd_manager_edit(server,headers,username,password):
+def ftd_manager_edit():
     print ('''
 ***********************************************************************************************
 *                         Edit manager config for FTDs in bulk                                *
@@ -1813,134 +1814,15 @@ if __name__ == "__main__":
     print ('''
 ***********************************************************************************************
 *                                                                                             *
-*                   Cisco FMC v6.7 API Tools (Written for Python 3.6+)                        *
+*                   Cisco FMC 6.7+ API Tools (Written for Python 3.6+)                        *
 *                                                                                             *
-***********************************************************************************************
-*                                                                                             *
-* USER INPUT NEEDED:                                                                          *
-*                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
-*                                                                                             *
-*  2. API Username                                                                            *
-*                                                                                             *
-*  3. API Password                                                                            *
-*                                                                                             *
-***********************************************************************************************
-''')
+***********************************************************************************************''')
+    # Init Variables
+    server,headers,username,password = '','','',''
+    loop = ''
 
-    Test = False
-    while not Test:
-        # Request FMC server FQDN
-        server = input('Please Enter FMC fqdn: ').lower().strip()
-
-        # Validate FQDN
-        if server[-1] == '/':
-            server = server[:-1]
-        if '//' in server:
-            server = server.split('//')[-1]
-
-        # Perform Test Connection To FQDN
-        s = socket.socket()
-        print(f'Attempting to connect to {server} on port 443')
-        try:
-            s.connect((server, 443))
-            print(f'Connecton successful to {server} on port 443')
-            Test = True
-        except:
-            print(f'Connection to {server} on port 443 failed: {traceback.format_exc()}\n\n')
-
-    # Adding HTTPS to Server for URL
-    server = f'https://{server}'
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-
-    # Request Username and Password without showing password in clear text
-    username = input('Please Enter API Username: ').strip()
-    password = define_password()
-    print ('''
-***********************************************************************************************
-*                                                                                             *
-* TOOLS AVAILABLE:                                                                            *
-*                                                                                             *
-*  1. Basic URL GET                                                                           *
-*                                                                                             *
-*  2. Create Network-Objects in bulk                                                          *
-*                                                                                             *
-*  3. Create Network-Objects in bulk and add to New Object-Group                              *
-*                                                                                             *
-*  4. Update IPS and/or File Policy for Access Rules                                          *
-*                                                                                             *
-*  5. Get Inventory List from FMC                                                             *
-*                                                                                             *
-*  6. Register FTD to FMC                                                                     *
-*                                                                                             *
-*  7. Deploy Pending FTDs                                                                     *
-*                                                                                             *
-*  8. Migrate Prefilter rules to Access Rules                                                 *
-*                                                                                             *
-*  9. Update Object Group with entries from txt file                                          *
-*                                                                                             *
-*  10. Export ACP and Prefilter Rules to CSV file                                             *
-*                                                                                             *
-*  11. Download Snort.org Rules                                                               *
-*                                                                                             *
-*  12. Delete FTD devices from FMC                                                            *
-*                                                                                             *
-*  13. Edit manager config for FTDs in bulk                                                   *
-*                                                                                             *
-***********************************************************************************************
-''')
-
-    #
-    #
-    #
     # Run script until user cancels
     while True:
-        Script = False
-        while not Script:
-            script = input('Please Select Tool: ')
-            if script == '1':
-                Script = True
-                blank_get(server,headers,username,password)
-            elif script == '2':
-                Script = True
-                post_network_object(server,headers,username,password)
-            elif script == '3':
-                Script = True
-                post_network_object_group(server,headers,username,password)
-            elif script == '4':
-                Script = True
-                put_intrusion_file(server,headers,username,password)
-            elif script == '5':
-                Script = True
-                get_inventory(server,headers,username,password)
-            elif script == '6':
-                Script = True
-                register_ftd(server,headers,username,password)
-            elif script == '7':
-                Script = True
-                deploy_ftds(server,headers,username,password)
-            elif script == '8':
-                Script = True
-                prefilter_to_acp(server,headers,username,password)
-            elif script == '9':
-                Script = True
-                obj_group_update(server,headers,username,password)
-            elif script == '10':
-                Script = True
-                export_acp_rules(server,headers,username,password)
-            elif script == '11':
-                Script = True
-                download_snort_rules(server,headers,username,password)
-            elif script == '12':
-                Script = True
-                delete_ftds_from_fmc(server,headers,username,password)
-            elif script == '13':
-                Script = True
-                ftd_manager_edit(server,headers,username,password)
-            else:
-                print('INVALID ENTRY... ')
-
-        # Ask to end the loop
         print ('''
 ***********************************************************************************************
 *                                                                                             *
@@ -1968,12 +1850,64 @@ if __name__ == "__main__":
 *                                                                                             *
 *  11. Download Snort.org Rules                                                               *
 *                                                                                             *
-*  12. Delete FTD devices from FMC                                                            *
+*  12. Delete FTDs from FMC using Name or Model search                                        *
 *                                                                                             *
 *  13. Edit manager config for FTDs in bulk                                                   *
 *                                                                                             *
 ***********************************************************************************************
 ''')
-        Loop = input('*\n*\nWould You Like To use another tool? [y/N]').lower()
-        if Loop not in (['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12','13']):
-            break
+        if loop == '':
+            pass
+        else:
+            # Ask to end the loop
+            loop = input('Would You Like To use another tool? [y/N]').lower()
+            if loop not in ['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12','13']:
+                break
+        # Select Script
+        if loop in ['1','2','3','4','5','6','7','8','9','10','11','12','13']:
+            script = loop
+        else:
+            script = input('Please Select Tool: ')
+        # Run selection
+        if script == '1':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            blank_get(server,headers,username,password)
+        elif script == '2':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            post_network_object(server,headers,username,password)
+        elif script == '3':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            post_network_object_group(server,headers,username,password)
+        elif script == '4':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            put_intrusion_file(server,headers,username,password)
+        elif script == '5':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            get_inventory(server,headers,username,password)
+        elif script == '6':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            register_ftd(server,headers,username,password)
+        elif script == '7':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            deploy_ftds(server,headers,username,password)
+        elif script == '8':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            prefilter_to_acp(server,headers,username,password)
+        elif script == '9':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            obj_group_update(server,headers,username,password)
+        elif script == '10':
+            export_acp_rules(server,headers,username,password)
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+        elif script == '11':
+            download_snort_rules()
+        elif script == '12':
+            server,headers,username,password = get_fmc_details(server,headers,username,password)
+            delete_ftds_from_fmc(server,headers,username,password)
+        elif script == '13':
+            ftd_manager_edit()
+        else:
+            print('Invalid selection... ')
+
+        loop = ' '
+

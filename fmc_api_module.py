@@ -47,6 +47,110 @@ def access_token(server,headers,username,password):
         sys.exit()
     return auth_token,domains
 
+
+
+#
+#
+#
+# Get FMC IP and Credentials
+def get_fmc_details(server,headers,username,password):
+    if server != '':
+        print(f'\nCurrent FMC: {server}\n')
+        while True:
+            choice = input('Would you like to enter a differnt FMC? [y/N]: ').lower()
+            if choice in (['yes','ye','y']):
+                print ('''
+***********************************************************************************************
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*                                                                                             *
+*  2. API Username                                                                            *
+*                                                                                             *
+*  3. API Password                                                                            *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+                while True:
+                    # Request FMC server FQDN
+                    server = input('Please Enter FMC fqdn: ').lower().strip()
+
+                    # Validate FQDN
+                    if server[-1] == '/':
+                        server = server[:-1]
+                    if '//' in server:
+                        server = server.split('//')[-1]
+
+                    # Perform Test Connection To FQDN
+                    s = socket.socket()
+                    print(f'Attempting to connect to {server} on port 443')
+                    try:
+                        s.connect((server, 443))
+                        print(f'Connecton successful to {server} on port 443')
+                        break
+                    except:
+                        print(f'Connection to {server} on port 443 failed: {traceback.format_exc()}\n\n')
+
+                # Adding HTTPS to Server for URL
+                server = f'https://{server}'
+                headers = {'Content-Type': 'application/json','Accept': 'application/json'}
+
+                # Request Username and Password without showing password in clear text
+                username = input('Please Enter API Username: ').strip()
+                password = define_password()
+            elif choice in (['no','n','']):
+                break
+            else:
+                print('Invalid Selection...\n')
+    else:
+        print ('''
+***********************************************************************************************
+*                                                                                             *
+* USER INPUT NEEDED:                                                                          *
+*                                                                                             *
+*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*                                                                                             *
+*  2. API Username                                                                            *
+*                                                                                             *
+*  3. API Password                                                                            *
+*                                                                                             *
+***********************************************************************************************
+''')
+
+        while True:
+            # Request FMC server FQDN
+            server = input('Please Enter FMC fqdn: ').lower().strip()
+
+            # Validate FQDN
+            if server[-1] == '/':
+                server = server[:-1]
+            if '//' in server:
+                server = server.split('//')[-1]
+
+            # Perform Test Connection To FQDN
+            s = socket.socket()
+            print(f'Attempting to connect to {server} on port 443')
+            try:
+                s.connect((server, 443))
+                print(f'Connecton successful to {server} on port 443')
+                break
+            except:
+                print(f'Connection to {server} on port 443 failed: {traceback.format_exc()}\n\n')
+
+        # Adding HTTPS to Server for URL
+        server = f'https://{server}'
+        headers = {'Content-Type': 'application/json','Accept': 'application/json'}
+
+        # Request Username and Password without showing password in clear text
+        username = input('Please Enter API Username: ').strip()
+        password = define_password()
+
+    return server,headers,username,password
+
+
+
 #
 #
 # Get Device Details from Inventory List
