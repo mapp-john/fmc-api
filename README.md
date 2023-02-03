@@ -1,32 +1,20 @@
 # ***Cisco FMC v6.7 API Tools (Written for Python 3.6+)***
 [![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/mapp-john/fmc-api)
-## **USAGE**
-API tool for Cisco FMC 
+
+## **Installation**
+1. Clone project repository or download ZIP and extract
+2. Install required python packages using `pip3 install -r requirements.txt`
+
+## **Usage**
 ```
 > python3 fmc_api_tools.py
 
-***********************************************************************************************
-*                                                                                             *
-*                   Cisco FMC v6.7 API Tools (Written for Python 3.6+)                        *
-*                                                                                             *
-***********************************************************************************************
-*                                                                                             *
-* USER INPUT NEEDED:                                                                          *
-*                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
-*                                                                                             *
-*  2. API Username                                                                            *
-*                                                                                             *
-*  3. API Password                                                                            *
-*                                                                                             *
-***********************************************************************************************
 
-Please Enter FMC fqdn: fmc.domain.com
-Attempting to connect to fmc.domain.com on port 443
-Connecton successful to fmc.domain.com on port 443
-Please Enter API Username: api
-Please Enter Password:
-Re-enter Password to Verify:
+***********************************************************************************************
+*                                                                                             *
+*                   Cisco FMC 6.7+ API Tools (Written for Python 3.6+)                        *
+*                                                                                             *
+***********************************************************************************************
 
 ***********************************************************************************************
 *                                                                                             *
@@ -50,7 +38,13 @@ Re-enter Password to Verify:
 *                                                                                             *
 *  9. Update Object Group with entries from txt file                                          *
 *                                                                                             *
-*  10. Export ACP and Prefilter Rules to CSV file                                              *
+*  10. Export ACP and Prefilter Rules to CSV file                                             *
+*                                                                                             *
+*  11. Download Snort.org Rules                                                               *
+*                                                                                             *
+*  12. Delete FTDs from FMC using Name or Model search                                        *
+*                                                                                             *
+*  13. Edit manager config for FTDs in bulk                                                   *
 *                                                                                             *
 ***********************************************************************************************
 
@@ -68,7 +62,9 @@ Please Select Tool:
 8. Migrate Prefilter rules to Access Rules
 9. Update Object Group with entries from txt file
 10. Export ACP and Prefilter Rules to CSV file
-
+11. Download Snort.org Rules
+12. Delete FTDs from FMC using Name or Model search
+13. Edit manager config for FTDs in bulk
 
 _____________________________________________________________________________________________
 ### **Basic URL GET Script**
@@ -78,7 +74,6 @@ USER INPUT NEEDED:
 2. Expand output to show details of each object *(Not Supported with {object_UUID} GET)
 3. Limit output to a specific number of objects *(Not Supported with {object_UUID} GET)
 4. Save output to JSON file
-
 
 _____________________________________________________________________________________________
 ### **Create Network Objects in bulk**
@@ -93,7 +88,6 @@ USER INPUT NEEDED:
     * Column0 = ObjectName
     * Column1 = Address
 
-
 _____________________________________________________________________________________________
 ### **Create Network Objects and Object Groups in bulk**
 
@@ -102,7 +96,7 @@ USER INPUT NEEDED:
     * Output from ASA "show run object network" AND "show run object-group network"
     * Ensure no object names overlap with existing objects
     * Ensure nested groups are above groups nesting them
-#### Example
+##### Example TXT
 ```
 object network Net-1
  subnet 10.1.1.0 255.255.255.0
@@ -172,7 +166,7 @@ USER INPUT NEEDED:
 2. TXT Data Input file
     * Supports groups with only IPv4 Host and Network objects
     * Text file must contain only host IPs and networks with CIDR notation
-#### Example
+##### Example TXT
 ```
 10.1.1.1
 10.1.1.3
@@ -184,4 +178,47 @@ ________________________________________________________________________________
 ### **Export ACP and Prefilter Rules to CSV file**
 
 Automatically saves CSV file to local directory
+
+
+_____________________________________________________________________________________________
+### **Download Snort.org Rules**
+
+Automatically downloads base rules from Snort.org and modifies SID to be imported into FMC
+
+_____________________________________________________________________________________________
+### **Update Object Group with entries from txt file**
+
+USER INPUT NEEDED:
+1. Search for FTD by name
+2. Search for FTD by model
+3. Verify FTDs to be deleted
+
+_____________________________________________________________________________________________
+### **Update Object Group with entries from txt file**
+
+USER INPUT NEEDED:
+1. Primary FMC UUID to edit (obtain from FMC CLI "show version")
+2. New IP address for Primary FMC
+3. Secondary FMC UUID to edit (obtain from FMC CLI "show version")
+4. New IP address for Secondary FMC
+5. CSV File for FTD SSH details
+  * CSV FORMAT:
+    * No Header Row & comma delimited
+    * Column0 = ftd_hostname
+    * Column1 = ssh_port
+    * Column2 = ftd_user
+    * Column3 = ftd_pass
+
+6. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3")
+7. FTD SSH port, if not default
+8. Username and Password for FTD SSH
+
+##### Example CSV
+```
+ftd1.cisco.com,2200,admin,cisco123
+ftd2.cisco.com,2201,admin,cisco123
+ftd3.cisco.com,2202,admin,cisco123
+```
+
+
 

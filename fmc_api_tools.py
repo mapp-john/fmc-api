@@ -1494,7 +1494,7 @@ def deploy_ftds(server,headers,username,password):
 def download_snort_rules():
     print ('''
 ***********************************************************************************************
-*                             Download Snort.org rules                                         *
+*                             Download Snort.org rules                                        *
 *_____________________________________________________________________________________________*
 *                                                                                             *
 ***********************************************************************************************
@@ -1654,6 +1654,12 @@ def ftd_manager_edit():
 *  4. New IP address for Secondary FMC                                                        *
 *                                                                                             *
 *  5. CSV File for FTD SSH details; format: "ftd_hostname, ssh_port, ftd_user, ftd_pass"      *
+*       # CSV FORMAT:                                                                         *
+*           No Header Row & comma delimited                                                   *
+*           Column0 = ftd_hostname                                                            *
+*           Column1 = ssh_port                                                                *
+*           Column2 = ftd_user                                                                *
+*           Column3 = ftd_pass                                                                *
 *                                                                                             *
 *  6. Comma separated list of FTD hostnames or IPs (IE. "1.1.1.1, 2.2.2.2, 3.3.3.3")          *
 *                                                                                             *
@@ -1806,10 +1812,6 @@ def ftd_manager_edit():
 #
 # Run Script if main
 if __name__ == "__main__":
-    #
-    #
-    #
-    # Initial input request
     print ('''
 ***********************************************************************************************
 *                                                                                             *
@@ -1862,11 +1864,13 @@ if __name__ == "__main__":
             loop = input('Would You Like To use another tool? [y/N]').lower()
             if loop not in ['yes','ye','y','1','2','3','4','5','6','7','8','9','10','11','12','13']:
                 break
+
         # Select Script
         if loop in ['1','2','3','4','5','6','7','8','9','10','11','12','13']:
             script = loop
         else:
             script = input('Please Select Tool: ')
+
         # Run selection
         if script == '1':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
@@ -1909,4 +1913,3 @@ if __name__ == "__main__":
             print('Invalid selection... ')
 
         loop = ' '
-

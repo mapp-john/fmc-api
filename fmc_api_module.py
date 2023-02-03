@@ -61,6 +61,8 @@ def get_fmc_details(server,headers,username,password):
             if choice in (['yes','ye','y']):
                 print ('''
 ***********************************************************************************************
+*                           Provide FMC hostname and credentials                              *
+*_____________________________________________________________________________________________*
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
