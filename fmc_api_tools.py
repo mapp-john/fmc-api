@@ -1548,9 +1548,9 @@ def delete_ftds_from_fmc(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. Search for FTD by name                                                                  *
+*  1. Search for FTD by Name                                                                  *
 *                                                                                             *
-*  2. Search for FTD by model                                                                 *
+*  2. Search for FTD by Model                                                                 *
 *                                                                                             *
 *  3. Verify FTDs to be deleted                                                               *
 *                                                                                             *
@@ -1708,13 +1708,13 @@ def ftd_manager_edit():
     choice = ''
     ftd_file = False
     while True:
+        ftds = []
         choice = input('Would you like to use CSV file for FTD details? [y/N]: ').lower()
         if choice in (['yes','ye','y']):
             read_file = input('Please enter file path to csv file: ').strip()
             if os.path.isfile(read_file):
                 # Read csv file
                 open_read_file = open(read_file, 'r', encoding='utf-8-sig').read()
-                ftds = []
                 try:
                     for i in open_read_file.splitlines():
                         if i == '':
@@ -1728,19 +1728,18 @@ def ftd_manager_edit():
             else:
                 print('Invalid input file path...\n')
         elif choice in (['no','n','']):
+            # Request Details
+            ftd_ips = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
+            ssh_port = input('Please enter SSH port, if not default [22]: ').strip()
+            ssh_port = '22' if ssh_port == '' else ssh_port
+            ftd_user = input('Please enter FTD username: ').strip()
+            ftd_pass = define_password()
+            for i in ftd_ips:
+                ftds.append([i.strip(), ssh_port, ftd_user, ftd_pass])
             break
         else:
             print('Invalid Selection...\n')
 
-    else:
-        # Request Details
-        ftd_ips = input('Please enter comma separated list of FTD hostnames/IPs: ').split(',')
-        ssh_port = input('Please enter SSH port, if not default [22]: ').strip()
-        ssh_port = '22' if ssh_port == '' else ssh_port
-        ftd_user = input('Please enter FTD username: ').strip()
-        ftd_pass = define_password()
-        for i in ftd_ips:
-            ftds.append([i.strip(), ssh_port, ftd_user, ftd_pass])
 
 
     for ftd in ftds:
