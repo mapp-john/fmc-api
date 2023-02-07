@@ -1599,8 +1599,16 @@ def delete_ftds_from_fmc(server,headers,username,password):
 
 
     if del_length > 0:
-        for d in del_devs:
-            print(d[0],d[1],d[2])
+        print (f'''
+***********************************************************************************************
+*                                                                                             *
+*                                 FTD Search Results                                          *
+*_____________________________________________________________________________________________*
+*            NAME         ,               UUID                  ,           Model             *''')
+        print('* '+'\n* '.join([f'{d[0]}, {d[1]}, {d[2]}' for d in del_devs]))
+        print('''***********************************************************************************************
+''')
+
         delete = input('Do you wish to delete the above devices? [y/N]: ').lower()
         if delete in ['y','ye','yes']:
             for d in del_devs:
