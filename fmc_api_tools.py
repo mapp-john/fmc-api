@@ -1592,11 +1592,8 @@ def delete_ftds_from_fmc(server,headers,username,password):
         # Match on Model type
         if any(i.lower() in d['model'].lower() for i in search_terms):
             del_devs.add((d['name'],d['id'],d['model']))
-
-
     del_length = len(del_devs)
     count = 0
-
 
     if del_length > 0:
         print (f'''
@@ -1604,7 +1601,7 @@ def delete_ftds_from_fmc(server,headers,username,password):
 *                                                                                             *
 *                                 FTD Search Results                                          *
 *_____________________________________________________________________________________________*
-*            NAME         ,               UUID                  ,           Model             *''')
+*____________NAME_________,_______________UUID__________________,___________Model_____________*''')
         print('* '+'\n* '.join([f'{d[0]}, {d[1]}, {d[2]}' for d in del_devs]))
         print('''***********************************************************************************************
 ''')

@@ -66,7 +66,7 @@ def get_fmc_details(server,headers,username,password):
 *                                                                                             *
 * USER INPUT NEEDED:                                                                          *
 *                                                                                             *
-*  1. FQDN for FMC server (hostname.domain.com)                                               *
+*  1. Hostname for FMC server (hostname.domain.com)                                           *
 *                                                                                             *
 *  2. API Username                                                                            *
 *                                                                                             *
@@ -76,8 +76,8 @@ def get_fmc_details(server,headers,username,password):
 ''')
 
                 while True:
-                    # Request FMC server FQDN
-                    server = input('Please Enter FMC fqdn: ').lower().strip()
+                    # Request FMC server Hostname
+                    server = input('Please Enter FMC Hostname: ').lower().strip()
 
                     # Validate FQDN
                     if server[-1] == '/':
