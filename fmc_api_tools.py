@@ -683,10 +683,18 @@ def get_inventory(server,headers,username,password):
         for item in cluster_data:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['masterDevice'] = get_device_details(item['masterDevice']['id'],devicelist_data)
-            temp_dict['slaveDevices'] = []
-            for item in item['slaveDevices']:
-                temp_dict['slaveDevices'].append(get_device_details(item['id'],devicelist_data))
+            if 'masterDevice' in item:
+                temp_dict['controlDevice'] = get_device_details(item['masterDevice']['deviceDetails']['id'],devicelist_data)
+                temp_dict['dataDevices'] = []
+                if 'slaveDevices' in item:
+                    for item in item['slaveDevices']:
+                        temp_dict['dataDevices'].append(get_device_details(item['deviceDetails']['id'],devicelist_data))
+            else:
+                temp_dict['controlDevice'] = get_device_details(item['controlDevice']['deviceDetails']['id'],devicelist_data)
+                temp_dict['dataDevices'] = []
+                if 'dataDevices' in item:
+                    for item in item['dataDevices']:
+                        temp_dict['dataDevices'].append(get_device_details(item['deviceDetails']['id'],devicelist_data))
             inventory['deviceClusters'].append(temp_dict)
 
     if ha_data != []:
@@ -746,18 +754,18 @@ def get_inventory(server,headers,username,password):
                     vdb_version = ''
                     snort_version = ''
                     serial = ''
-                    name = item['masterDevice']['name']
-                    model = item['masterDevice']['model']
-                    version = item['masterDevice']['sw_version']
-                    status = item['masterDevice']['healthStatus']
-                    license = ';'.join(item['masterDevice']['license_caps'])
-                    if 'ftdMode' in item['masterDevice']: mode = item['masterDevice']['ftdMode']
-                    if 'sru_version' in item['masterDevice']: sru_version = item['masterDevice']['sru_version']
-                    if 'vdb_version' in item['masterDevice']: vdb_version = item['masterDevice']['vdb_version']
-                    if 'snort_version' in item['masterDevice']: snort_version = item['masterDevice']['snort_version']
-                    if 'chassisData' in item['masterDevice']: serial = item['masterDevice']['chassisData']['chassisSerialNo']
+                    name = item['controlDevice']['name']
+                    model = item['controlDevice']['model']
+                    version = item['controlDevice']['sw_version']
+                    status = item['controlDevice']['healthStatus']
+                    license = ';'.join(item['controlDevice']['license_caps'])
+                    if 'ftdMode' in item['controlDevice']: mode = item['controlDevice']['ftdMode']
+                    if 'sru_version' in item['controlDevice']: sru_version = item['controlDevice']['sru_version']
+                    if 'vdb_version' in item['controlDevice']: vdb_version = item['controlDevice']['vdb_version']
+                    if 'snort_version' in item['controlDevice']: snort_version = item['controlDevice']['snort_version']
+                    if 'chassisData' in item['controlDevice']: serial = item['controlDevice']['chassisData']['chassisSerialNo']
                     OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
-                    for item in item['slaveDevices']:
+                    for item in item['dataDevices']:
                         mode = ''
                         sru_version = ''
                         vdb_version = ''
