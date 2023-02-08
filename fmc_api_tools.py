@@ -27,7 +27,6 @@ from fmc_api_module import \
         put_bulk_acp_rules,\
         get_device_details,\
         get_net_object_uuid
-
 # Disable SSL warning
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
