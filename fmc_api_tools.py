@@ -34,7 +34,7 @@ warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 #
 #
 # Define Blank URL Get Script as Function
-def blank_get(server,headers,username,password):
+def blank_get(server,headers):
     print ('''
 ***********************************************************************************************
 *                             Basic URL GET Script                                            *
@@ -53,11 +53,6 @@ def blank_get(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
 
     # Request API URI Path
     api_path = input('Please Enter URI: ').lower().strip()
@@ -124,7 +119,7 @@ def blank_get(server,headers,username,password):
 #
 #
 # Define Network Object POST Script as Funtion
-def post_network_object(server,headers,username,password):
+def post_network_object(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                          Create Network Objects in bulk                                     *
@@ -143,18 +138,6 @@ def post_network_object(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     objTypes = [
         {
             'name':'Host',
@@ -225,7 +208,7 @@ def post_network_object(server,headers,username,password):
 #
 #
 # Define Network Object-Group POST Script as Funtion
-def post_network_object_group(server,headers,username,password):
+def post_network_object_group(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                     Create Network Objects and Object Groups in bulk                        *
@@ -240,17 +223,6 @@ def post_network_object_group(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
 
     Test = False
     while not Test:
@@ -487,7 +459,7 @@ def post_network_object_group(server,headers,username,password):
 #
 #
 # Define IPS/File Policy Put Script as Funtion
-def put_intrusion_file(server,headers,username,password):
+def put_intrusion_file(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                     Update IPS and/or File Policy for Access Rules                          *
@@ -509,18 +481,6 @@ def put_intrusion_file(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     all_rules = False
     Test = False
     while not Test:
@@ -635,7 +595,7 @@ def put_intrusion_file(server,headers,username,password):
 #
 #
 # Define Inventory List Script as Funtion
-def get_inventory(server,headers,username,password):
+def get_inventory(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                           Pull Full FMC Device Inventory List                               *
@@ -643,18 +603,6 @@ def get_inventory(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     # Get all Devices
     print('*\n*\nCOLLECTING ALL INVENTORY...')
     url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true&offset=0&limit=1000'
@@ -1028,7 +976,7 @@ def get_inventory(server,headers,username,password):
 #
 #
 # Define Inventory List Script as Funtion
-def register_ftd(server,headers,username,password):
+def register_ftd(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                                   Register FTD to FMC                                       *
@@ -1046,18 +994,6 @@ def register_ftd(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     # Request FTD Details
     FTD_IP = input('Please enter FTD IP Address: ').strip()
     FTD_name = input('Please enter FTD display name: ').strip()
@@ -1134,7 +1070,7 @@ def register_ftd(server,headers,username,password):
 #
 #
 # Define Inventory List Script as Funtion
-def prefilter_to_acp(server,headers,username,password):
+def prefilter_to_acp(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                    Convert Prefilter rules to Access-Control rules                          *
@@ -1150,18 +1086,6 @@ def prefilter_to_acp(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
     url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/accesspolicies?expanded=true&offset=0&limit=1000'
@@ -1298,7 +1222,7 @@ def prefilter_to_acp(server,headers,username,password):
 #
 #
 # Object Group Compare and Update
-def obj_group_update(server,headers,username,password):
+def obj_group_update(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                    Update Object Group with entries from txt file                           *
@@ -1316,17 +1240,6 @@ def obj_group_update(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
 
     objGroupName = input('Please Enter Object Group Name: ').strip()
     Test = False
@@ -1539,7 +1452,7 @@ def obj_group_update(server,headers,username,password):
 #
 #
 # Export ACP and Prefilter Rules
-def export_acp_rules(server,headers,username,password):
+def export_acp_rules(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                      Export ACP and Prefilter Rules to CSV file                             *
@@ -1550,19 +1463,6 @@ def export_acp_rules(server,headers,username,password):
 
     outfile = open(f'acp_rule_export_{datetime.now().strftime("%Y-%m-%d_%H%M")}.csv','w')
     outfile.write('FMC_NAME,ACP_NAME,ACP_TYPE,ACP_ID,R_NAME,R_ID,R_ACTION,R_SRC_ZN,R_DST_ZN,R_SRC_IP,R_DST_IP,R_VLAN,R_USERS,R_APP,R_URL,R_SRC_P,R_DST_P,R_SRC_SGT,R_DST_SGT,R_IPS,R_FILE\n')
-
-    fmc_name = server.replace('https://','')
-
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
 
     # Get all Access Control Policies
     print('*\n*\nCOLLECTING Access Policies...')
@@ -1593,7 +1493,7 @@ def export_acp_rules(server,headers,username,password):
 #
 #
 # Deploy Pending FTDs
-def deploy_ftds(server,headers,username,password):
+def deploy_ftds(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                                 Deploy Pending FTDs                                         *
@@ -1601,17 +1501,6 @@ def deploy_ftds(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-    print('Generating Access Token')
-    # Generate Access Token and pull domains from auth headers
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     traffic_int = False
     while True:
         choice = input('Would You Like To Deploy FTDs With Traffic Interruption? [y/N]: ').lower()
@@ -1721,7 +1610,7 @@ def download_snort_rules():
 #
 #
 # Delete FTDs from FMC
-def delete_ftds_from_fmc(server,headers,username,password):
+def delete_ftds_from_fmc(server,headers,api_uuid):
     print ('''
 ***********************************************************************************************
 *                    Delete FTDs from FMC using Name or Model search                          *
@@ -1737,17 +1626,6 @@ def delete_ftds_from_fmc(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-
-
-    results=access_token(server,headers,username,password)
-    headers['X-auth-access-token']=results[0]
-    domains = results[1]
-
-    if len(domains) > 1:
-        api_uuid = select('Domain',domains)['uuid']
-    else:
-        api_uuid = domains[0]['uuid']
-
     url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true'
     devices = get_items(url,headers)
     del_devs = set()
@@ -2060,41 +1938,230 @@ if __name__ == "__main__":
         # Run selection
         if script == '1':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            blank_get(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            blank_get(server,headers)
+
         elif script == '2':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            post_network_object(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            post_network_object(server,headers,api_uuid)
+
         elif script == '3':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            post_network_object_group(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            post_network_object_group(server,headers,api_uuid)
+
         elif script == '4':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            put_intrusion_file(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            put_intrusion_file(server,headers,api_uuid)
+
         elif script == '5':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            get_inventory(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            get_inventory(server,headers,api_uuid)
+
         elif script == '6':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            register_ftd(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            register_ftd(server,headers,api_uuid)
+
         elif script == '7':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            deploy_ftds(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            deploy_ftds(server,headers,api_uuid)
+
         elif script == '8':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            prefilter_to_acp(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            prefilter_to_acp(server,headers,api_uuid)
+
         elif script == '9':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            obj_group_update(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            obj_group_update(server,headers,api_uuid)
+
         elif script == '10':
-            export_acp_rules(server,headers,username,password)
             server,headers,username,password = get_fmc_details(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            export_acp_rules(server,headers,api_uuid)
+
         elif script == '11':
             download_snort_rules()
+
         elif script == '12':
             server,headers,username,password = get_fmc_details(server,headers,username,password)
-            delete_ftds_from_fmc(server,headers,username,password)
+            print('Generating Access Token')
+            # Generate Access Token and pull domains from auth headers
+            while True:
+                results = access_token(server,headers,username,password)
+                if not results:
+                    print('Authentication failure, please re-enter FMC details...')
+                    server,headers,username,password = get_fmc_details(server,headers,username,password)
+                else:
+                    break
+            headers['X-auth-access-token']=results[0]
+            domains = results[1]
+            if len(domains) > 1:
+                api_uuid = select('Domain',domains)['uuid']
+            else:
+                api_uuid = domains[0]['uuid']
+
+            delete_ftds_from_fmc(server,headers,api_uuid)
+
         elif script == '13':
             ftd_manager_edit()
+
         else:
             print('Invalid selection... ')
 

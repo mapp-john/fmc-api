@@ -36,16 +36,16 @@ def access_token(server,headers,username,password):
         # REST call with SSL verification turned off:
         r = requests.post(auth_url, headers=headers, auth=requests.auth.HTTPBasicAuth(username,password), verify=False)
         print(r.status_code)
-        auth_token = r.headers['X-auth-access-token']
-        domains = json.loads(r.headers['DOMAINS'])
-        if auth_token == None:
-            print('auth_token not found. Exiting...')
-            sys.exit()
+        if r.status_code == 401:
+            return None
+        else:
+            auth_token = r.headers['X-auth-access-token']
+            domains = json.loads(r.headers['DOMAINS'])
+            return auth_token,domains
     except Exception as err:
         print (f'Error in generating auth token --> {traceback.format_exc()}')
         print(r.headers)
-        sys.exit()
-    return auth_token,domains
+        return None
 
 
 
@@ -55,11 +55,7 @@ def access_token(server,headers,username,password):
 # Get FMC IP and Credentials
 def get_fmc_details(server,headers,username,password):
     if server != '':
-        print(f'\nCurrent FMC: {server}\n')
-        while True:
-            choice = input('Would you like to enter a differnt FMC? [y/N]: ').lower()
-            if choice in (['yes','ye','y']):
-                print ('''
+        print ('''
 ***********************************************************************************************
 *                           Provide FMC hostname and credentials                              *
 *_____________________________________________________________________________________________*
@@ -74,10 +70,14 @@ def get_fmc_details(server,headers,username,password):
 *                                                                                             *
 ***********************************************************************************************
 ''')
+        print(f'\nCurrent FMC: {server}\n')
+        while True:
+            choice = input('Would you like to enter a different FMC? [y/N]: ').lower()
+            if choice in (['yes','ye','y']):
 
                 while True:
                     # Request FMC server Hostname
-                    server = input('Please Enter FMC Hostname: ').lower().strip()
+                    server = input('Please enter FMC hostname: ').lower().strip()
 
                     # Validate FQDN
                     if server[-1] == '/':
@@ -100,9 +100,13 @@ def get_fmc_details(server,headers,username,password):
                 headers = {'Content-Type': 'application/json','Accept': 'application/json'}
 
                 # Request Username and Password without showing password in clear text
-                username = input('Please Enter API Username: ').strip()
+                username = input('Please enter API username: ').strip()
                 password = define_password()
             elif choice in (['no','n','']):
+                choice = input('Would you like to enter different username/password? [y/N]: ').lower()
+                if choice in (['yes','ye','y']):
+                    username = input('Please enter API username: ').strip()
+                    password = define_password()
                 break
             else:
                 print('Invalid Selection...\n')
@@ -125,7 +129,7 @@ def get_fmc_details(server,headers,username,password):
 
         while True:
             # Request FMC server FQDN
-            server = input('Please Enter FMC Hostname: ').lower().strip()
+            server = input('Please enter FMC hostname: ').lower().strip()
 
             # Validate FQDN
             if server[-1] == '/':
@@ -148,7 +152,7 @@ def get_fmc_details(server,headers,username,password):
         headers = {'Content-Type': 'application/json','Accept': 'application/json'}
 
         # Request Username and Password without showing password in clear text
-        username = input('Please Enter API Username: ').strip()
+        username = input('Please enter API username: ').strip()
         password = define_password()
 
     return server,headers,username,password
