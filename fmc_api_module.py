@@ -159,22 +159,34 @@ def get_fmc_details(server,headers,username,password):
 #
 # Get Device Details from Inventory List
 # And Delete item from Inventory List
-def get_device_details(ID,DeviceList):
+def get_device_details(id,device_list):
     temp_dict = {}
-    for item in DeviceList:
-        if item['id']==ID:
-          temp_dict['name'] = item['name']
-          temp_dict['model'] = item['model']
-          temp_dict['healthStatus'] = item['healthStatus']
-          temp_dict['sw_version'] = item['sw_version']
-          temp_dict['license_caps'] = item['license_caps']
-          if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
-          if 'sruVersion' in item['metadata']: temp_dict['sru_version'] = item['metadata']['sruVersion']
-          if 'vdbVersion' in item['metadata']: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
-          if 'snortVersion' in item['metadata']: temp_dict['snort_version'] = item['metadata']['snortVersion']
-          if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-          # Delete item from Device List
-          DeviceList.pop(DeviceList.index(item))
+    for item in device_list:
+        if item['id']==id:
+            temp_dict['accessPolicy'] = item['accessPolicy']
+            temp_dict['name'] = item['name']
+            temp_dict['model'] = item['model']
+            temp_dict['healthStatus'] = item['healthStatus']
+            temp_dict['sw_version'] = item['sw_version']
+            temp_dict['license_caps'] = item['license_caps']
+            if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
+
+            if 'hostname' in item: temp_dict['hostName'] = item['hostname']
+            if 'hostName' in item: temp_dict['hostName'] = item['hostName']
+            if 'snortEngine' in item: temp_dict['snortEngine'] = item['snortEngine']
+
+            if 'deviceSerialNumber' in item['metadata']: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
+            if 'containerDetails' in item['metadata']: temp_dict['containerDetails'] = item['metadata']['containerDetails']
+            if 'inventoryData' in item['metadata']: temp_dict['inventoryData'] = item['metadata']['inventoryData']
+            if 'domain' in item['metadata']: temp_dict['domain'] = item['metadata']['domain']
+            if 'isMultiInstance' in item['metadata']: temp_dict['isMultiInstance'] = item['metadata']['isMultiInstance']
+
+            if 'sruVersion' in item['metadata']: temp_dict['sruVersion'] = item['metadata']['sruVersion']
+            if 'vdbVersion' in item['metadata']: temp_dict['vdbVersion'] = item['metadata']['vdbVersion']
+            if 'snortVersion' in item['metadata']: temp_dict['snortVersion'] = item['metadata']['snortVersion']
+            if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
+            # Delete item from Device List
+            device_list.pop(device_list.index(item))
     return temp_dict
 
 

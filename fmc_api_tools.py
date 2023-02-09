@@ -102,8 +102,8 @@ def blank_get(server,headers,username,password):
                 filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
                 filename += '.json'
                 print(f'*\n*\nRANDOM LOG FILE CREATED... {filename}\n')
-                with open(filename, 'a') as OutFile:
-                    OutFile.write(json.dumps(resp,indent=4))
+                with open(filename, 'a') as outfile:
+                    outfile.write(json.dumps(resp,indent=4))
             elif save in (['no','n','']):
                 print(json.dumps(resp,indent=4))
         else:
@@ -672,13 +672,14 @@ def get_inventory(server,headers,username,password):
 
 
 
-    # Create Base Dict
+    # Create base inventory dict
     inventory = {
         'deviceClusters':[],
         'deviceHAPairs':[],
         'devices':[]
         }
 
+    # Append HA devices to inventory
     if cluster_data != []:
         for item in cluster_data:
             temp_dict = {}
@@ -697,46 +698,37 @@ def get_inventory(server,headers,username,password):
                         temp_dict['dataDevices'].append(get_device_details(item['deviceDetails']['id'],devicelist_data))
             inventory['deviceClusters'].append(temp_dict)
 
+    # Append HA devices to inventory
     if ha_data != []:
         for item in ha_data:
             temp_dict = {}
             temp_dict['name']= item['name']
+            temp_dict['accessPolicy'] = item['accessPolicy']['name']
             temp_dict['primary'] = get_device_details(item['primary']['id'],devicelist_data)
             temp_dict['secondary'] = get_device_details(item['secondary']['id'],devicelist_data)
             inventory['deviceHAPairs'].append(temp_dict)
 
+    # Append remaining devices to inventory list
     if devicelist_data != []:
-        for item in devicelist_data:
-            temp_dict = {}
-            temp_dict['name'] = item['name']
-            temp_dict['model'] = item['model']
-            temp_dict['hostname'] = item['hostName']
-            temp_dict['healthStatus'] = item['healthStatus']
-            temp_dict['sw_version'] = item['sw_version']
-            temp_dict['license_caps'] = item['license_caps']
-            temp_dict['ftdMode'] = ''
-            if 'ftdMode' in item: temp_dict['ftdMode'] = item['ftdMode']
-            temp_dict['deviceSerialNumber'] = ''
-            if 'deviceSerialNumber' in item['metadata']: temp_dict['deviceSerialNumber'] = item['metadata']['deviceSerialNumber']
-            if 'sruVersion' in item['metadata']: temp_dict['sru_version'] = item['metadata']['sruVersion']
-            if 'vdbVersion' in item['metadata']: temp_dict['vdb_version'] = item['metadata']['vdbVersion']
-            if 'snortVersion' in item['metadata']: temp_dict['snort_version'] = item['metadata']['snortVersion']
-            if 'chassisData' in item['metadata']: temp_dict['chassisData'] = item['metadata']['chassisData']
-            inventory['devices'].append(temp_dict)
+        ids = [i['id'] for i in devicelist_data]
+        for id in ids:
+            inventory['devices'].append(get_device_details(id,devicelist_data))
 
 
     print('*\n*\nFMC Inventory compilation successful...')
     # Ask if JSON output should be saved to File
-    save = input('Would You Like To Save The JSON Output To File? [y/N]: ').lower()
+    save = input('Would you like to save the JSON output to file? [y/N]: ').lower()
     if save in (['yes','ye','y']):
         # Random Generated JSON Output File
         filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
         filename += '.json'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
-        with open(filename, 'a') as OutFile:
-            OutFile.write(json.dumps(inventory,indent=4))
+        with open(filename, 'a') as outfile:
+            outfile.write(json.dumps(inventory,indent=4))
     elif save in (['no','n','']):
-        print(json.dumps(inventory,indent=4))
+        p = input('Would you like to print JSON Output to console? [y/N]: ').lower()
+        if p in (['yes','ye','y']):
+            print(json.dumps(inventory,indent=4))
 
     # Ask if CSV output should be saved to File
     save = input('Would You Like To Save CSV Output To File? [y/N]: ').lower()
@@ -745,106 +737,288 @@ def get_inventory(server,headers,username,password):
         filename = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
         filename += '.csv'
         print(f'*\n*\nRANDOM OUTPUT FILE CREATED... {filename}\n')
-        with open(filename, 'a') as OutFile:
-            OutFile.write('NAME,MODEL,VERSION,STATUS,SERIAL,MODE,LICENSE,SRU,VDB,SNORT\n')
+        with open(filename, 'a') as outfile:
+            outfile.write('NAME,HOSTNAME,MODEL,VERSION,ACCESS POLICY,STATUS,DEVICE SERIAL,CHASSIS SERIAL,MODE,LICENSE,SRU,VDB,SNORT VERSION,SNORT ENG,CONTAINER,CHASSIS INVENTORY,DOMAIN,MULTI-INSTANCE\n')
             if inventory['deviceClusters'] != []:
                 for item in inventory['deviceClusters']:
+                    # Reset all variables
+                    name = ''
+                    hostname = ''
+                    model = ''
+                    version = ''
+                    acp = ''
+                    status = ''
+                    device_sn = ''
+                    chassis_sn = ''
                     mode = ''
-                    sru_version = ''
-                    vdb_version = ''
-                    snort_version = ''
-                    serial = ''
+                    license = ''
+                    sru_ver = ''
+                    vdb_ver = ''
+                    snort_ver = ''
+                    snort_eng = ''
+                    container = ''
+                    chassis_inv = ''
+                    domain = ''
+                    multi_inst = ''
+
                     name = item['controlDevice']['name']
                     model = item['controlDevice']['model']
                     version = item['controlDevice']['sw_version']
                     status = item['controlDevice']['healthStatus']
                     license = ';'.join(item['controlDevice']['license_caps'])
+                    if 'accessPolicy' in item['controlDevice']: acp = item['controlDevice']['accessPolicy']['name']
+                    if 'hostName' in item['controlDevice']: hostname = item['controlDevice']['hostName']
+                    if 'snortEngine' in item['controlDevice']: snort_eng = item['controlDevice']['snortEngine']
+                    if 'deviceSerialNumber' in item['controlDevice']: device_sn = item['controlDevice'
+                                                                        ]['deviceSerialNumber']
+                    if 'containerDetails' in item['controlDevice']: container = f"""{item['controlDevice'
+                                                                        ]['containerDetails'
+                                                                        ]['type']}: {
+                                                                    item['controlDevice'
+                                                                        ]['containerDetails'
+                                                                        ]['name']}; {
+                                                                    item['controlDevice'
+                                                                        ]['containerDetails'
+                                                                        ]['role']}"""
+                    if 'inventoryData' in item['controlDevice']: chassis_inv = '; '.join([f'''{k}: {
+                                                                                v}''' for k,v in item['controlDevice'
+                                                                                ]['inventoryData'
+                                                                                ].items()])
+                    if 'domain' in item['controlDevice']: domain = item['controlDevice']['domain'
+                                                                        ]['name']
+                    if 'isMultiInstance' in item['controlDevice']: multi_inst = item['controlDevice'
+                                                                        ]['isMultiInstance']
+
+
                     if 'ftdMode' in item['controlDevice']: mode = item['controlDevice']['ftdMode']
-                    if 'sru_version' in item['controlDevice']: sru_version = item['controlDevice']['sru_version']
-                    if 'vdb_version' in item['controlDevice']: vdb_version = item['controlDevice']['vdb_version']
-                    if 'snort_version' in item['controlDevice']: snort_version = item['controlDevice']['snort_version']
-                    if 'chassisData' in item['controlDevice']: serial = item['controlDevice']['chassisData']['chassisSerialNo']
-                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
-                    for item in item['dataDevices']:
-                        mode = ''
-                        sru_version = ''
-                        vdb_version = ''
-                        snort_version = ''
-                        serial = ''
-                        name = item['name']
-                        model = item['model']
-                        version = item['sw_version']
-                        status = item['healthStatus']
-                        license = ';'.join(item['license_caps'])
-                        if 'ftdMode' in item: mode = item['ftdMode']
-                        if 'sru_version' in item: sru_version = item['sru_version']
-                        if 'vdb_version' in item: vdb_version = item['vdb_version']
-                        if 'snort_version' in item: snort_version = item['snort_version']
-                        if 'chassisData' in item: serial = item['chassisData']['chassisSerialNo']
-                        OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
+                    if 'sruVersion' in item['controlDevice']: sru_ver = item['controlDevice']['sruVersion']
+                    if 'vdbVersion' in item['controlDevice']: vdb_ver = item['controlDevice']['vdbVersion']
+                    if 'snortVersion' in item['controlDevice']: snort_ver = item['controlDevice'
+                                                                                    ]['snortVersion']
+                    if 'chassisData' in item['controlDevice']: chassis_sn = item['controlDevice'
+                                                                                    ]['chassisData'
+                                                                                    ]['chassisSerialNo']
+                    outfile.write(f'''{name},{hostname},{model},{version},{acp},{status},{device_sn},{
+                                    chassis_sn},{mode},{license},{sru_ver},{vdb_ver},{snort_ver},{
+                                    snort_eng},{container},{chassis_inv},{domain},{multi_inst}\n''')
+                    if 'dataDevices' in item:
+                        for item in item['dataDevices']:
+                            # Reset all variables
+                            name = ''
+                            hostname = ''
+                            model = ''
+                            version = ''
+                            acp = ''
+                            status = ''
+                            device_sn = ''
+                            chassis_sn = ''
+                            mode = ''
+                            license = ''
+                            sru_ver = ''
+                            vdb_ver = ''
+                            snort_ver = ''
+                            snort_eng = ''
+                            container = ''
+                            chassis_inv = ''
+                            domain = ''
+                            multi_inst = ''
+
+                            name = item['name']
+                            model = item['model']
+                            version = item['sw_version']
+                            status = item['healthStatus']
+                            license = ';'.join(item['license_caps'])
+                            if 'accessPolicy' in item: acp = item['accessPolicy']['name']
+                            if 'hostName' in item: hostname = item['hostName']
+                            if 'snortEngine' in item: snort_eng = item['snortEngine']
+                            if 'deviceSerialNumber' in item: device_sn = item['deviceSerialNumber']
+                            if 'containerDetails' in item: container = f"""{item['containerDetails'
+                                                                                ]['type']}: {
+                                                                            item['containerDetails'
+                                                                                ]['name']}; {
+                                                                            item['containerDetails'
+                                                                                ]['role']}"""
+                            if 'inventoryData' in item: chassis_inv = '; '.join([f'''{k}: {
+                                                                            v}''' for k,v in item['inventoryData'
+                                                                            ].items()])
+                            if 'domain' in item: domain = item['domain']['name']
+                            if 'isMultiInstance' in item: multi_inst = item['isMultiInstance']
+
+
+                            if 'ftdMode' in item: mode = item['ftdMode']
+                            if 'sruVersion' in item: sru_ver = item['sruVersion']
+                            if 'vdbVersion' in item: vdb_ver = item['vdbVersion']
+                            if 'snortVersion' in item: snort_ver = item['snortVersion']
+                            if 'chassisData' in item: chassis_sn = item['chassisData']['chassisSerialNo']
+                            outfile.write(f'''{name},{hostname},{model},{version},{acp},{status},{device_sn},{
+                                            chassis_sn},{mode},{license},{sru_ver},{vdb_ver},{snort_ver},{
+                                            snort_eng},{container},{chassis_inv},{domain},{multi_inst}\n''')
             if inventory['deviceHAPairs'] != []:
                 for item in inventory['deviceHAPairs']:
+                    # HA Primary Member
+                    # Reset all variables
+                    name = ''
+                    hostname = ''
+                    model = ''
+                    version = ''
+                    acp = ''
+                    status = ''
+                    device_sn = ''
+                    chassis_sn = ''
                     mode = ''
-                    sru_version = ''
-                    vdb_version = ''
-                    snort_version = ''
-                    serial = ''
+                    license = ''
+                    sru_ver = ''
+                    vdb_ver = ''
+                    snort_ver = ''
+                    snort_eng = ''
+                    container = ''
+                    chassis_inv = ''
+                    domain = ''
+                    multi_inst = ''
+
                     name = item['primary']['name']
                     model = item['primary']['model']
                     version = item['primary']['sw_version']
                     status = item['primary']['healthStatus']
                     license = ';'.join(item['primary']['license_caps'])
+                    if 'accessPolicy' in item['primary']: acp = item['primary']['accessPolicy']['name']
+                    if 'hostName' in item['primary']: hostname = item['primary']['hostName']
+                    if 'snortEngine' in item['primary']: snort_eng = item['primary']['snortEngine']
+                    if 'deviceSerialNumber' in item['primary']: device_sn = item['primary'
+                                                                        ]['deviceSerialNumber']
+                    if 'containerDetails' in item['primary']: container = f"""{item['primary'
+                                                                        ]['containerDetails'
+                                                                        ]['type']}: {
+                                                                    item['primary'
+                                                                        ]['containerDetails'
+                                                                        ]['name']}; {
+                                                                    item['primary'
+                                                                        ]['containerDetails'
+                                                                        ]['role']}"""
+                    if 'inventoryData' in item['primary']: chassis_inv = '; '.join([f'''{k}: {
+                                                                                v}''' for k,v in item['primary'
+                                                                                ]['inventoryData'
+                                                                                ].items()])
+                    if 'domain' in item['primary']: domain = item['primary']['domain'
+                                                                        ]['name']
+                    if 'isMultiInstance' in item['primary']: multi_inst = item['primary'
+                                                                        ]['isMultiInstance']
                     if 'ftdMode' in item['primary']: mode = item['primary']['ftdMode']
-                    if 'sru_version' in item['primary']: sru_version = item['primary']['sru_version']
-                    if 'vdb_version' in item['primary']: vdb_version = item['primary']['vdb_version']
-                    if 'snort_version' in item['primary']: snort_version = item['primary']['snort_version']
-                    if 'chassisData' in item['primary']:
-                        serial = item['primary']['chassisData']['chassisSerialNo']
-                    elif 'deviceSerialNumber' in item['primary']:
-                        serial = item['primary']['deviceSerialNumber']
-                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
+                    if 'sruVersion' in item['primary']: sru_ver = item['primary']['sruVersion']
+                    if 'vdbVersion' in item['primary']: vdb_ver = item['primary']['vdbVersion']
+                    if 'snortVersion' in item['primary']: snort_ver = item['primary']['snortVersion']
+                    if 'chassisData' in item['primary']: chassis_sn = item['primary']['chassisData'
+                                                                                    ]['chassisSerialNo']
+                    outfile.write(f'''{name},{hostname},{model},{version},{acp},{status},{device_sn},{
+                                       chassis_sn},{mode},{license},{sru_ver},{vdb_ver},{snort_ver},{
+                                        snort_eng},{container},{chassis_inv},{domain},{multi_inst}\n''')
+                    # HA Secondary Member
+                    # Reset all variables
+                    name = ''
+                    hostname = ''
+                    model = ''
+                    version = ''
+                    acp = ''
+                    status = ''
+                    device_sn = ''
+                    chassis_sn = ''
                     mode = ''
-                    sru_version = ''
-                    vdb_version = ''
-                    snort_version = ''
-                    serial = ''
+                    license = ''
+                    sru_ver = ''
+                    vdb_ver = ''
+                    snort_ver = ''
+                    snort_eng = ''
+                    container = ''
+                    chassis_inv = ''
+                    domain = ''
+                    multi_inst = ''
+
                     name = item['secondary']['name']
                     model = item['secondary']['model']
                     version = item['secondary']['sw_version']
                     status = item['secondary']['healthStatus']
                     license = ';'.join(item['secondary']['license_caps'])
+                    if 'accessPolicy' in item['secondary']: acp = item['secondary']['accessPolicy']['name']
+                    if 'hostName' in item['secondary']: hostname = item['secondary']['hostName']
+                    if 'snortEngine' in item['secondary']: snort_eng = item['secondary']['snortEngine']
+                    if 'deviceSerialNumber' in item['secondary']: device_sn = item['secondary'
+                                                                        ]['deviceSerialNumber']
+                    if 'containerDetails' in item['secondary']: container = f"""{item['secondary'
+                                                                        ]['containerDetails'
+                                                                        ]['type']}: {
+                                                                    item['secondary'
+                                                                        ]['containerDetails'
+                                                                        ]['name']}; {
+                                                                    item['secondary'
+                                                                        ]['containerDetails'
+                                                                        ]['role']}"""
+                    if 'inventoryData' in item['secondary']: chassis_inv = '; '.join([f'''{k}: {
+                                                                                v}''' for k,v in item['secondary'
+                                                                                ]['inventoryData'
+                                                                                ].items()])
+                    if 'domain' in item['secondary']: domain = item['secondary']['domain'
+                                                                        ]['name']
+                    if 'isMultiInstance' in item['secondary']: multi_inst = item['secondary'
+                                                                        ]['isMultiInstance']
                     if 'ftdMode' in item['secondary']: mode = item['secondary']['ftdMode']
-                    if 'sru_version' in item['secondary']: sru_version = item['secondary']['sru_version']
-                    if 'vdb_version' in item['secondary']: vdb_version = item['secondary']['vdb_version']
-                    if 'snort_version' in item['secondary']: snort_version = item['secondary']['snort_version']
-                    if 'chassisData' in item['secondary']:
-                        serial = item['secondary']['chassisData']['chassisSerialNo']
-                    elif 'deviceSerialNumber' in item['secondary']:
-                        serial = item['secondary']['deviceSerialNumber']
-                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
+                    if 'sruVersion' in item['secondary']: sru_ver = item['secondary']['sruVersion']
+                    if 'vdbVersion' in item['secondary']: vdb_ver = item['secondary']['vdbVersion']
+                    if 'snortVersion' in item['secondary']: snort_ver = item['secondary']['snortVersion']
+                    if 'chassisData' in item['secondary']: chassis_sn = item['secondary']['chassisData'
+                                                                                    ]['chassisSerialNo']
+                    outfile.write(f'''{name},{hostname},{model},{version},{acp},{status},{device_sn},{
+                                       chassis_sn},{mode},{license},{sru_ver},{vdb_ver},{snort_ver},{
+                                        snort_eng},{container},{chassis_inv},{domain},{multi_inst}\n''')
             if inventory['devices'] != []:
                 for item in inventory['devices']:
-                    serial = item['deviceSerialNumber']
+                    # Reset all variables
+                    name = ''
+                    hostname = ''
+                    model = ''
+                    version = ''
+                    acp = ''
+                    status = ''
+                    device_sn = ''
+                    chassis_sn = ''
+                    mode = ''
+                    license = ''
+                    sru_ver = ''
+                    vdb_ver = ''
+                    snort_ver = ''
+                    snort_eng = ''
+                    container = ''
+                    chassis_inv = ''
+                    domain = ''
+                    multi_inst = ''
+
                     name = item['name']
                     model = item['model']
-                    hostname = item['hostname']
                     version = item['sw_version']
                     license = ';'.join(item['license_caps'])
                     status = item['healthStatus']
-                    mode = ''
-                    sru_version = ''
-                    vdb_version = ''
-                    snort_version = ''
-                    serial = ''
+                    if 'accessPolicy' in item: acp = item['accessPolicy']['name']
+                    if 'hostName' in item: hostname = item['hostName']
+                    if 'snortEngine' in item: snort_eng = item['snortEngine']
+                    if 'deviceSerialNumber' in item: device_sn = item['deviceSerialNumber']
+                    if 'containerDetails' in item: container = f"""{item['containerDetails'
+                                                                        ]['type']}: {
+                                                                    item['containerDetails'
+                                                                        ]['name']}; {
+                                                                    item['containerDetails'
+                                                                        ]['role']}"""
+                    if 'inventoryData' in item: chassis_inv = '; '.join([f'''{k}: {
+                                                                    v}''' for k,v in item['inventoryData'
+                                                                    ].items()])
+                    if 'domain' in item: domain = item['domain']['name']
+                    if 'isMultiInstance' in item: multi_inst = item['isMultiInstance']
                     if 'ftdMode' in item: mode = item['ftdMode']
-                    if 'sru_version' in item: sru_version = item['sru_version']
-                    if 'vdb_version' in item: vdb_version = item['vdb_version']
-                    if 'snort_version' in item: snort_version = item['snort_version']
-                    if 'chassisData' in item:
-                        serial = item['chassisData']['chassisSerialNo']
-                    elif 'deviceSerialNumber' in item:
-                        serial = item['deviceSerialNumber']
-                    OutFile.write(f'{name},{model},{version},{status},{serial},{mode},{license},{sru_version},{vdb_version},{snort_version}\n')
+                    if 'sruVersion' in item: sru_ver = item['sruVersion']
+                    if 'vdbVersion' in item: vdb_ver = item['vdbVersion']
+                    if 'snortVersion' in item: snort_ver = item['snortVersion']
+                    if 'chassisData' in item: chassis_sn = item['chassisData']['chassisSerialNo']
+                    outfile.write(f'''{name},{hostname},{model},{version},{acp},{status},{device_sn},{
+                                       chassis_sn},{mode},{license},{sru_ver},{vdb_ver},{snort_ver},{
+                                        snort_eng},{container},{chassis_inv},{domain},{multi_inst}\n''')
 
 
 
