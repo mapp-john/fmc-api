@@ -138,7 +138,7 @@ def post_network_object(server,headers,api_uuid):
 *                                                                                             *
 ***********************************************************************************************
 ''')
-    objTypes = [
+    obj_types = [
         {
             'name':'Host',
             'url':f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
@@ -157,7 +157,7 @@ def post_network_object(server,headers,api_uuid):
         }
     ]
     # Select type of Object to post
-    objType = select('Object Type',objTypes)
+    obj_type = select('Object Type',obj_types)
 
     Test = False
 
@@ -175,18 +175,18 @@ def post_network_object(server,headers,api_uuid):
     post_data = []
     # Create For Loop To Process Each Item In CSV
     for row in my_csv_reader:
-        objName = row[0]
+        obj_name = row[0]
         address = row[1]
         post_data.append({
-            'name': objName,
-            'type': objType['name'],
+            'name': obj_name,
+            'type': obj_type['name'],
             'description': '',
             'value': address
         })
 
     try:
         # REST call with SSL verification turned off:
-        url = objType['url']
+        url = obj_type['url']
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
         resp = r.text
@@ -235,7 +235,7 @@ def post_network_object_group(server,headers,api_uuid):
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    tempData = {
+    temp_data = {
         'objects':[],
         'groups':[]
     }
@@ -246,12 +246,12 @@ def post_network_object_group(server,headers,api_uuid):
         name = obj[0].split()[-1]
         if obj[0].startswith('-group'):
             obj.pop(0)
-            tempData['groups'].append({'name':name,'entries':obj})
+            temp_data['groups'].append({'name':name,'entries':obj})
         else:
             obj.pop(0)
-            tempData['objects'].append({'name':name,'entry':obj[0].strip()})
+            temp_data['objects'].append({'name':name,'entry':obj[0].strip()})
 
-    Data = {
+    data = {
         'objects': {
             'Host':[],
             'Network':[],
@@ -261,41 +261,41 @@ def post_network_object_group(server,headers,api_uuid):
         'groups':{}
     }
 
-    for obj in tempData['objects']:
-        objName = obj['name']
+    for obj in temp_data['objects']:
+        obj_name = obj['name']
         if obj['entry'].startswith('host'):
-            objType = 'Host'
+            obj_type = 'Host'
             address = obj['entry'].split()[-1]
-            Data['objects']['Host'].append({
-                'name': objName,
-                'type': objType,
+            data['objects']['Host'].append({
+                'name': obj_name,
+                'type': obj_type,
                 'description': '',
                 'value': address
             })
         elif obj['entry'].startswith('subnet'):
-            objType = 'Network'
+            obj_type = 'Network'
             address = f'{obj["entry"].split()[-2]}/{obj["entry"].split()[-1]}'
-            Data['objects']['Network'].append({
-                'name': objName,
-                'type': objType,
+            data['objects']['Network'].append({
+                'name': obj_name,
+                'type': obj_type,
                 'description': '',
                 'value': address
             })
         elif obj['entry'].startswith('range'):
-            objType = 'Range'
+            obj_type = 'Range'
             address = f'{obj["entry"].split()[-2]}-{obj["entry"].split()[-1]}'
-            Data['objects']['Range'].append({
-                'name': objName,
-                'type': objType,
+            data['objects']['Range'].append({
+                'name': obj_name,
+                'type': obj_type,
                 'description': '',
                 'value': address
             })
         if obj['entry'].startswith('fqdn'):
-            objType = 'FQDN'
+            obj_type = 'FQDN'
             address = obj['entry'].split()[-1]
-            Data['objects']['FQDN'].append({
-                'name': objName,
-                'type': objType,
+            data['objects']['FQDN'].append({
+                'name': obj_name,
+                'type': obj_type,
                 'description': '',
                 'value': address
             })
@@ -304,7 +304,7 @@ def post_network_object_group(server,headers,api_uuid):
     # Post Host objects, and store JSON response with object uuids
     try:
         # REST call with SSL verification turned off:
-        post_data = Data['objects']['Host']
+        post_data = data['objects']['Host']
         url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
@@ -312,7 +312,7 @@ def post_network_object_group(server,headers,api_uuid):
         print(f'Status code is: {status_code}')
         if status_code == 201 or status_code == 202:
             print('Network Objects successfully created...')
-            Data['objects']['Host'] = r.json()['items']
+            data['objects']['Host'] = r.json()['items']
         else :
             print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
             r.raise_for_status()
@@ -327,7 +327,7 @@ def post_network_object_group(server,headers,api_uuid):
     # Post Network objects, and store JSON response with object uuids
     try:
         # REST call with SSL verification turned off:
-        post_data = Data['objects']['Network']
+        post_data = data['objects']['Network']
         url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
@@ -335,7 +335,7 @@ def post_network_object_group(server,headers,api_uuid):
         print(f'Status code is: {status_code}')
         if status_code == 201 or status_code == 202:
             print('Network Objects successfully created...')
-            Data['objects']['Network'] = r.json()['items']
+            data['objects']['Network'] = r.json()['items']
         else :
             print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
             r.raise_for_status()
@@ -350,7 +350,7 @@ def post_network_object_group(server,headers,api_uuid):
     # Post Ranges objects, and store JSON response with object uuids
     try:
         # REST call with SSL verification turned off:
-        post_data = Data['objects']['Range']
+        post_data = data['objects']['Range']
         url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/ranges?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
@@ -358,7 +358,7 @@ def post_network_object_group(server,headers,api_uuid):
         print(f'Status code is: {status_code}')
         if status_code == 201 or status_code == 202:
             print('Network Objects successfully created...')
-            Data['objects']['Range'] = r.json()['items']
+            data['objects']['Range'] = r.json()['items']
         else :
             print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
             r.raise_for_status()
@@ -373,7 +373,7 @@ def post_network_object_group(server,headers,api_uuid):
     # Post FQDN objects, and store JSON response with object uuids
     try:
         # REST call with SSL verification turned off:
-        post_data = Data['objects']['FQDN']
+        post_data = data['objects']['FQDN']
         url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/fqdns?bulk=true'
         r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
         status_code = r.status_code
@@ -381,7 +381,7 @@ def post_network_object_group(server,headers,api_uuid):
         print(f'Status code is: {status_code}')
         if status_code == 201 or status_code == 202:
             print('Network Objects successfully created...')
-            Data['objects']['FQDN'] = r.json()['items']
+            data['objects']['FQDN'] = r.json()['items']
         else :
             print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
             r.raise_for_status()
@@ -393,10 +393,10 @@ def post_network_object_group(server,headers,api_uuid):
         except:
             None
 
-    for obj in tempData['groups']:
-        objName = obj['name']
-        Obj = {
-            'name': objName,
+    for obj in temp_data['groups']:
+        obj_name = obj['name']
+        obj = {
+            'name': obj_name,
             'type': 'NetworkGroup',
             'objects': [],
             'literals': []
@@ -404,29 +404,29 @@ def post_network_object_group(server,headers,api_uuid):
         for item in obj['entries']:
             if 'network-object host ' in item:
                 address = item.split()[-1]
-                Obj['literals'].append({
+                obj['literals'].append({
                     'type': 'Host',
                     'value': address
                 })
             elif 'network-object object ' in item:
                 nestObjName = item.split()[-1]
-                for k,v in Data['objects'].items():
+                for k,v in data['objects'].items():
                     for i in v:
                         if i['name'] == nestObjName:
-                            Obj['objects'].append({
+                            obj['objects'].append({
                                 'type': i['type'],
                                 'id': i['id']
                             })
             elif 'network-object ' in item:
                 address = f'{item.split()[-2]}/{item.split()[-1]}'
-                Obj['literals'].append({
+                obj['literals'].append({
                     'type': 'Network',
                     'value': address
                 })
             elif 'group-object ' in item:
                 nestObjName = item.split()[-1]
-                i = Data['groups'][nestObjName]
-                Obj['objects'].append({
+                i = data['groups'][nestObjName]
+                obj['objects'].append({
                     'type': i['type'],
                     'id': i['id']
                 })
@@ -434,7 +434,7 @@ def post_network_object_group(server,headers,api_uuid):
         # Post object group, and store JSON response with object uuids
         try:
             # REST call with SSL verification turned off:
-            post_data = Obj
+            post_data = obj
             url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networkgroups'
             r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
             status_code = r.status_code
@@ -442,7 +442,7 @@ def post_network_object_group(server,headers,api_uuid):
             print(f'Status code is: {status_code}')
             if status_code == 201 or status_code == 202:
                 print('Network Object Group successfully created...')
-                Data['groups'].update({objName:r.json()})
+                data['groups'].update({obj_name:r.json()})
             else :
                 print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
                 r.raise_for_status()
@@ -995,12 +995,12 @@ def register_ftd(server,headers,api_uuid):
 ***********************************************************************************************
 ''')
     # Request FTD Details
-    FTD_IP = input('Please enter FTD IP Address: ').strip()
-    FTD_name = input('Please enter FTD display name: ').strip()
-    FTD_user = input('Please enter FTD username: ').strip()
-    FTD_pass = define_password()
+    ftd_ip = input('Please enter FTD IP Address: ').strip()
+    ftd_name = input('Please enter FTD display name: ').strip()
+    ftd_user = input('Please enter FTD username: ').strip()
+    ftd_pass = define_password()
     # Generate random Registration Key
-    regKey = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
+    reg_key = ''.join(i for i in [chr(random.randint(97,122)) for i in range(6)])
 
     # Create Get DATA JSON Dictionary to collect all ACP names
     print('*\n*\nCOLLECTING Access Policies...')
@@ -1013,10 +1013,10 @@ def register_ftd(server,headers,api_uuid):
     #print(json.dumps(acp,indent=4))
 
     post_data = {
-        'name': FTD_name,
-        'hostName': FTD_IP,
+        'name': ftd_name,
+        'hostName': ftd_ip,
         'natID': 'cisco123',
-        'regKey': regKey,
+        'regKey': reg_key,
         'type': 'Device',
         'license_caps': [
             'BASE',
@@ -1056,8 +1056,8 @@ def register_ftd(server,headers,api_uuid):
     try:
         # Connect to FTD, and initiate registration
         print('\nConnecting to FTD for CLI registration...')
-        connection = netmiko.ConnectHandler(ip=FTD_IP, device_type='autodetect', username=FTD_user, password=FTD_pass, global_delay_factor=6)
-        output = connection.send_command(f'configure manager add {server.replace("https://","")} {regKey} cisco123')
+        connection = netmiko.ConnectHandler(ip=ftd_ip, device_type='autodetect', username=ftd_user, password=ftd_pass, global_delay_factor=6)
+        output = connection.send_command(f'configure manager add {server.replace("https://","")} {reg_key} cisco123')
         connection.disconnect()
         print('FTD Registration command successful...')
     except:
@@ -1241,7 +1241,7 @@ def obj_group_update(server,headers,api_uuid):
 ***********************************************************************************************
 ''')
 
-    objGroupName = input('Please Enter Object Group Name: ').strip()
+    obj_group_name = input('Please Enter Object Group Name: ').strip()
     Test = False
     while not Test:
         # Request Input File
@@ -1253,7 +1253,7 @@ def obj_group_update(server,headers,api_uuid):
         else:
             print('MUST PROVIDE INPUT FILE...')
 
-    fileEntries = open_read_file.splitlines()
+    file_entries = open_read_file.splitlines()
 
 
     # Collect all Network objects
@@ -1265,97 +1265,97 @@ def obj_group_update(server,headers,api_uuid):
 
 
     url = f'{server}/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/object/networkgroups?expanded=true&offset=0&limit=1000'
-    objGroupEntries = []
-    objGroups = get_items(url,headers)
-    objGroup = None
-    for g in objGroups:
-        if g['name'] == objGroupName:
-            objGroup = g
+    obj_group_entries = []
+    obj_groups = get_items(url,headers)
+    obj_group = None
+    for g in obj_groups:
+        if g['name'] == obj_group_name:
+            obj_group = g
 
-    if not objGroup:
-        print(f'Group name "{objGroupName}" not found')
+    if not obj_group:
+        print(f'Group name "{obj_group_name}" not found')
         return
     else:
-        if 'literals' in objGroup:
-            for lit in objGroup['literals']:
+        if 'literals' in obj_group:
+            for lit in obj_group['literals']:
                 if lit['type'] == 'Network':
-                    objGroupEntries.append(IPv4Network(lit['value']).with_prefixlen)
+                    obj_group_entries.append(IPv4Network(lit['value']).with_prefixlen)
                 else:
-                    objGroupEntries.append(lit['value'])
-        if 'objects' in objGroup:
+                    obj_group_entries.append(lit['value'])
+        if 'objects' in obj_group:
             # Append networks with CIDR notation
-            objGroupEntries += [
-                IPv4Network(item['value']).with_prefixlen for item in networks if item['id'] in [i['id'] for i in objGroup['objects']]]
-            objGroupEntries += [
-                item['value'] for item in hosts if item['id'] in [i['id'] for i in objGroup['objects']]]
+            obj_group_entries += [
+                IPv4Network(item['value']).with_prefixlen for item in networks if item['id'] in [i['id'] for i in obj_group['objects']]]
+            obj_group_entries += [
+                item['value'] for item in hosts if item['id'] in [i['id'] for i in obj_group['objects']]]
 
         # Compile list of Missing entries on FMC
-        diffMissing = [ip for ip in fileEntries if ip not in objGroupEntries]
+        diff_missing = [ip for ip in file_entries if ip not in obj_group_entries]
         # Compile list of Extra entries on FMC
-        diffExtra = [ip for ip in objGroupEntries if ip not in fileEntries]
+        diff_extra = [ip for ip in obj_group_entries if ip not in file_entries]
 
-        newLits = []
-        newObjs = []
-        newEntries = []
+        new_lits = []
+        new_objs = []
+        new_entries = []
         # Include literals if they are in the file entries
-        if 'literals' in objGroup:
-            for lit in objGroup['literals']:
+        if 'literals' in obj_group:
+            for lit in obj_group['literals']:
                 if lit['type'] == 'Network':
-                    if IPv4Network(lit['value']).with_prefixlen in fileEntries:
-                        newEntries.append(IPv4Network(lit['value']).with_prefixlen)
-                        newLits.append(lit)
-                elif lit['value'] in fileEntries:
-                    newEntries.append(lit['value'])
-                    newLits.append(lit)
+                    if IPv4Network(lit['value']).with_prefixlen in file_entries:
+                        new_entries.append(IPv4Network(lit['value']).with_prefixlen)
+                        new_lits.append(lit)
+                elif lit['value'] in file_entries:
+                    new_entries.append(lit['value'])
+                    new_lits.append(lit)
 
-        for ip in fileEntries:
-            if ('/' in ip) and (IPv4Network(ip).with_prefixlen not in newEntries):
+        for ip in file_entries:
+            if ('/' in ip) and (IPv4Network(ip).with_prefixlen not in new_entries):
                 for net in networks:
                     try:
                         if IPv4Network(ip).with_prefixlen == IPv4Network(net['value']).with_prefixlen:
-                            newObjs.append({
+                            new_objs.append({
                                 'type': net['type'],
                                 'name': net['name'],
                                 'id': net['id']
                             })
-                            newEntries.append(IPv4Network(ip).with_prefixlen)
+                            new_entries.append(IPv4Network(ip).with_prefixlen)
                     except:
                         None
             else:
                 for host in hosts:
-                    if (ip not in newEntries) and (ip == host['value']):
-                        newObjs.append({
+                    if (ip not in new_entries) and (ip == host['value']):
+                        new_objs.append({
                             'type': host['type'],
                             'name': host['name'],
                             'id': host['id']
                         })
-                        newEntries.append(ip)
+                        new_entries.append(ip)
 
-        missingObj = [ip for ip in fileEntries if ip not in newEntries]
+        missing_obj = [ip for ip in file_entries if ip not in new_entries]
 
-        createNets = {'data': [], 'result': []}
-        createHosts = {'data': [], 'result': []}
-        for ip in missingObj:
+        create_nets = {'data': [], 'result': []}
+        create_hosts = {'data': [], 'result': []}
+        for ip in missing_obj:
             if '/' in ip:
-                createNets['data'].append({
+                create_nets['data'].append({
                     'name': f'Net-{ip.replace("/","-")}',
                     'type': 'Network',
                     'description': '',
                     'value': ip
                 })
             else:
-                createHosts['data'].append({
+                create_hosts['data'].append({
                     'name': f'Host-{ip}',
                     'type': 'Host',
                     'description': '',
                     'value': ip
                 })
 
-        if createNets['data'] != []:
+        if create_nets['data'] != []:
             # Post Network objects, and store JSON response with object uuids
             try:
                 # REST call with SSL verification turned off:
-                post_data = createNets['data']
+                post_data = create_nets['data']
                 url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networks?bulk=true'
                 r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
                 status_code = r.status_code
@@ -1363,7 +1363,7 @@ def obj_group_update(server,headers,api_uuid):
                 print(f'Status code is: {status_code}')
                 if status_code == 201 or status_code == 202:
                     print('Network Objects successfully created...')
-                    createNets['result'] = r.json()['items']
+                    create_nets['result'] = r.json()['items']
                 else :
                     print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
                     r.raise_for_status()
@@ -1375,11 +1375,11 @@ def obj_group_update(server,headers,api_uuid):
                 except:
                     None
 
-        if createHosts['data'] != []:
+        if create_hosts['data'] != []:
             # Post Host objects, and store JSON response with object uuids
             try:
                 # REST call with SSL verification turned off:
-                post_data = createHosts['data']
+                post_data = create_hosts['data']
                 url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/hosts?bulk=true'
                 r = requests.post(url, data=json.dumps(post_data), headers=headers, verify=False)
                 status_code = r.status_code
@@ -1387,7 +1387,7 @@ def obj_group_update(server,headers,api_uuid):
                 print(f'Status code is: {status_code}')
                 if status_code == 201 or status_code == 202:
                     print('Network Objects successfully created...')
-                    createHosts['result'] = r.json()['items']
+                    create_hosts['result'] = r.json()['items']
                 else :
                     print(f'Error occurred in POST --> {json.dumps(r.json(),indent=4)}')
                     r.raise_for_status()
@@ -1399,31 +1399,31 @@ def obj_group_update(server,headers,api_uuid):
                 except:
                     None
 
-        for net in createNets['result']:
-            newObjs.append({
+        for net in create_nets['result']:
+            new_objs.append({
                 'type': net['type'],
                 'name': net['name'],
                 'id': net['id']
             })
 
-        for host in createHosts['result']:
-            newObjs.append({
+        for host in create_hosts['result']:
+            new_objs.append({
                 'type': host['type'],
                 'name': host['name'],
                 'id': host['id']
             })
 
         # Update Object Group data
-        del objGroup['links']
-        del objGroup['metadata']
-        objGroup['objects'] = newObjs
-        objGroup['literals'] = newLits
+        del obj_group['links']
+        del obj_group['metadata']
+        obj_group['objects'] = new_objs
+        obj_group['literals'] = new_lits
 
         # PUT object group
         try:
             # REST call with SSL verification turned off:
-            post_data = objGroup
-            url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networkgroups/{objGroup["id"]}'
+            post_data = obj_group
+            url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/object/networkgroups/{obj_group["id"]}'
             r = requests.put(url, data=json.dumps(post_data), headers=headers, verify=False)
             status_code = r.status_code
             resp = r.text
@@ -1442,8 +1442,8 @@ def obj_group_update(server,headers,api_uuid):
                 None
 
         # Print report
-        print(f'Objects added to group:\n{json.dumps(diffMissing,indent=4)}')
-        print(f'Objects removed from group:\n{json.dumps(diffExtra,indent=4)}')
+        print(f'Objects added to group:\n{json.dumps(diff_missing,indent=4)}')
+        print(f'Objects removed from group:\n{json.dumps(diff_extra,indent=4)}')
 
 
 
