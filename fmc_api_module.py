@@ -130,7 +130,8 @@ def get_fmc_details(server,headers,username,password):
         while True:
             # Request FMC server FQDN
             server = input('Please enter FMC hostname: ').lower().strip()
-
+            if server == '':
+                continue
             # Validate FQDN
             if server[-1] == '/':
                 server = server[:-1]

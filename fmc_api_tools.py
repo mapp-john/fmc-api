@@ -633,11 +633,11 @@ def get_inventory(server,headers,api_uuid):
             temp_dict = {}
             temp_dict['name']= item['name']
             if 'masterDevice' in item:
-                temp_dict['controlDevice'] = get_device_details(item['masterDevice']['deviceDetails']['id'],devicelist_data)
+                temp_dict['controlDevice'] = get_device_details(item['masterDevice']['id'],devicelist_data)
                 temp_dict['dataDevices'] = []
                 if 'slaveDevices' in item:
                     for item in item['slaveDevices']:
-                        temp_dict['dataDevices'].append(get_device_details(item['deviceDetails']['id'],devicelist_data))
+                        temp_dict['dataDevices'].append(get_device_details(item['id'],devicelist_data))
             else:
                 temp_dict['controlDevice'] = get_device_details(item['controlDevice']['deviceDetails']['id'],devicelist_data)
                 temp_dict['dataDevices'] = []
@@ -1626,31 +1626,63 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
 *                                                                                             *
 ***********************************************************************************************
 ''')
+    print('Collecting all devices and VPN policies...')
     url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true'
     devices = get_items(url,headers)
-    del_devs = set()
+
+    # Restructure device data
+    devices = {
+        d['id'].lower(): {
+            'id': d['id'].lower(),
+            'name': d['name'],
+            'model': d['model'],
+            'ftds2svpn': []
+        } for d in devices
+    }
+
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/ftds2svpns?expanded=true'
+    s2svpns = get_items(url,headers)
+
+    # Restructure vpn data
+    s2svpns = {
+        s['id'].lower(): {
+            'id': s['id'].lower(),
+            's2s_endpts': [e['device']['id'].lower(
+                        ) for e in get_items(f'{s["endpoints"]["links"]["self"]}?expanded=true',
+                                                headers) if e['extranet'] == False]
+        } for s in s2svpns
+    }
+
+    # Add the VPN policy to the device
+    for id,s in s2svpns.items():
+        for e in s['s2s_endpts']:
+            if e in devices:
+                devices[e]['ftds2svpn'].append(id)
+
+    del_devs = {}
+
     search_terms = []
     term = ''
     while term != 'DONE':
-        term = input('Please enter a FTD name string to search. Enter "DONE" to finish: ')
-        if term != 'DONE':
+        term = input('Please enter a FTD name string to search. Enter "DONE" to finish: ').strip()
+        if (term != 'DONE') and (term != ''):
             search_terms.append(term)
-    for d in devices:
+    for id,d in devices.items():
         # Match on Name contains
-        if any(i.lower() in d['name'].lower() for i in search_terms):
-            del_devs.add((d['name'],d['id'],d['model']))
+        if any(i.lower() in d['name'].lower() for i in search_terms) and (id not in del_devs):
+            del_devs[id] = d
 
     search_terms = []
     term = ''
     while term != 'DONE':
-        term = input('Please enter a FTD model string to search (IE. "9000", "VMWare"). Enter "DONE" to finish: ')
-        if term != 'DONE':
+        term = input('Please enter a FTD model string to search (IE. "9000", "VMWare"). Enter "DONE" to finish: ').strip()
+        if (term != 'DONE') and (term != ''):
             search_terms.append(term)
-
-    for d in devices:
+    for id,d in devices.items():
         # Match on Model type
-        if any(i.lower() in d['model'].lower() for i in search_terms):
-            del_devs.add((d['name'],d['id'],d['model']))
+        if any(i.lower() in d['model'].lower() for i in search_terms) and (id not in del_devs):
+            del_devs[id] = d
+
     del_length = len(del_devs)
     count = 0
 
@@ -1660,16 +1692,41 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
 *                                                                                             *
 *                                 FTD Search Results                                          *
 *_____________________________________________________________________________________________*
-*____________NAME_________,_______________UUID__________________,___________Model_____________*''')
-        print('* '+'\n* '.join([f'{d[0]}, {d[1]}, {d[2]}' for d in del_devs]))
-        print('''***********************************************************************************************
-''')
+*           NAME          ,                 UUID                ,           Model             *
+*_____________________________________________________________________________________________*''')
+
+        print('* '+'\n* '.join([f'{d["name"]}, {d["id"]}, {d["model"]}' for id,d in del_devs.items()]))
+        print('''***********************************************************************************************\n''')
 
         delete = input('Do you wish to delete the above devices? [y/N]: ').lower()
         if delete in ['y','ye','yes']:
-            for d in del_devs:
+            for id,d in del_devs.items():
+                if 'ftds2svpn' != []:
+                    vlength = len(d['ftds2svpn'])
+                    vcount = 0
+                    for v in d['ftds2svpn']:
+                        vcount += 1
+                        url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/ftds2svpns/{v}'
+                        try:
+                            r = requests.delete(url, headers=headers, verify=False)
+                            status_code = r.status_code
+                            if status_code == 429:
+                                print("Rate limit reached. Waiting 60 seconds before continuing...")
+                                time.sleep(61)
+                                r = requests.delete(url, headers=headers, verify=False)
+                                status_code = r.status_code
+                                if status_code != 400:
+                                    print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                else:
+                                    print(f'\n{d["name"]} s2svpn policy failed to be removed! Status code: {status_code}\n')
+                            elif status_code == 400:
+                                print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
+                            else:
+                                print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                        except requests.exceptions.HTTPError as err:
+                            print (f'Error in connection --> {traceback.format_exc()}')
+
                 count += 1
-                id = d[1]
                 url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords/{id}'
                 try:
                     r = requests.delete(url, headers=headers, verify=False)
@@ -1680,13 +1737,13 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
                         r = requests.delete(url, headers=headers, verify=False)
                         status_code = r.status_code
                         if status_code != 400:
-                            print(f'\n{d[0]} has been removed. {count} of {del_length}. Status code: {status_code}\n')
+                            print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
                         else:
-                            print(f'\n{d[0]} failed to be removed! Status code: {status_code}\n')
+                            print(f'\n{d["name"]} failed to be removed! Status code: {status_code}\n')
                     elif status_code == 400:
-                        print(f'\n{d[0]} failed to be removed! {count} of {del_length}. Status code: {status_code}\n')
+                        print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
                     else:
-                        print(f'\n{d[0]} has been removed. {count} of {del_length}. Status code: {status_code}\n')
+                        print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
 
                 except requests.exceptions.HTTPError as err:
                     print (f'Error in connection --> {traceback.format_exc()}')
@@ -1696,6 +1753,15 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
         print("\nNothing to delete. Closing...")
 
 
+#items = get_items('https://u32c01p10-vrouter.cisco.com:17501/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/policy/ftds2svpns',headers)
+#
+#
+#for i in items:
+#    try:
+#        url = i['links']['self']
+#        r = requests.delete(url,headers=headers,verify=False)
+#    except requests.exceptions.HTTPError as err:
+#        print (f'Error in connection --> {traceback.format_exc()}')
 
 #
 #
