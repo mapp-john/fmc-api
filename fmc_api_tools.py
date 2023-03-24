@@ -1715,14 +1715,14 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
                                 time.sleep(61)
                                 r = requests.delete(url, headers=headers, verify=False)
                                 status_code = r.status_code
-                                if status_code != 400:
+                                if status_code == 200:
                                     print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
                                 else:
                                     print(f'\n{d["name"]} s2svpn policy failed to be removed! Status code: {status_code}\n')
-                            elif status_code == 400:
-                                print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
-                            else:
+                            elif status_code == 200:
                                 print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                            else:
+                                print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
                         except requests.exceptions.HTTPError as err:
                             print (f'Error in connection --> {traceback.format_exc()}')
 
@@ -1736,14 +1736,14 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
                         time.sleep(61)
                         r = requests.delete(url, headers=headers, verify=False)
                         status_code = r.status_code
-                        if status_code != 400:
+                        if status_code == 200:
                             print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
                         else:
                             print(f'\n{d["name"]} failed to be removed! Status code: {status_code}\n')
-                    elif status_code == 400:
-                        print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
-                    else:
+                    elif status_code == 200:
                         print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                    else:
+                        print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
 
                 except requests.exceptions.HTTPError as err:
                     print (f'Error in connection --> {traceback.format_exc()}')
