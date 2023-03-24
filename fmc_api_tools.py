@@ -1610,7 +1610,7 @@ def download_snort_rules():
 #
 #
 # Delete FTDs from FMC
-def delete_ftds_from_fmc(server,headers,api_uuid):
+def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
     print ('''
 ***********************************************************************************************
 *                    Delete FTDs from FMC using Name or Model search                          *
@@ -1717,10 +1717,58 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
                                 status_code = r.status_code
                                 if status_code == 200:
                                     print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                elif status_code == 401:
+                                    print("Token expired, renewing...")
+                                    results = access_token(server,headers,username,password)
+                                    headers['X-auth-access-token']=results[0]
+
+                                    try:
+                                        r = requests.delete(url, headers=headers, verify=False)
+                                        status_code = r.status_code
+                                        if status_code == 429:
+                                            print("Rate limit reached. Waiting 60 seconds before continuing...")
+                                            time.sleep(61)
+                                            r = requests.delete(url, headers=headers, verify=False)
+                                            status_code = r.status_code
+                                            if status_code == 200:
+                                                print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                            else:
+                                                print(f'\n{d["name"]} s2svpn policy failed to be removed! Status code: {status_code}\n')
+                                        elif status_code == 200:
+                                            print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                        else:
+                                            print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
+                                    except requests.exceptions.HTTPError as err:
+                                        print (f'Error in connection --> {traceback.format_exc()}')
+
                                 else:
                                     print(f'\n{d["name"]} s2svpn policy failed to be removed! Status code: {status_code}\n')
                             elif status_code == 200:
                                 print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                            elif status_code == 401:
+                                print("Token expired, renewing...")
+                                results = access_token(server,headers,username,password)
+                                headers['X-auth-access-token']=results[0]
+
+                                try:
+                                    r = requests.delete(url, headers=headers, verify=False)
+                                    status_code = r.status_code
+                                    if status_code == 429:
+                                        print("Rate limit reached. Waiting 60 seconds before continuing...")
+                                        time.sleep(61)
+                                        r = requests.delete(url, headers=headers, verify=False)
+                                        status_code = r.status_code
+                                        if status_code == 200:
+                                            print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                        else:
+                                            print(f'\n{d["name"]} s2svpn policy failed to be removed! Status code: {status_code}\n')
+                                    elif status_code == 200:
+                                        print(f'\n{d["name"]} s2svpn policy has been removed. {vcount} of {vlength}. Status code: {status_code}')
+                                    else:
+                                        print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
+                                except requests.exceptions.HTTPError as err:
+                                    print (f'Error in connection --> {traceback.format_exc()}')
+
                             else:
                                 print(f'\n{d["name"]} s2svpn policy failed to be removed! {vcount} of {vlength}. Status code: {status_code}')
                         except requests.exceptions.HTTPError as err:
@@ -1738,10 +1786,59 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
                         status_code = r.status_code
                         if status_code == 200:
                             print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                        elif status_code == 401:
+                            print("Token expired, renewing...")
+                            results = access_token(server,headers,username,password)
+                            headers['X-auth-access-token']=results[0]
+
+                            try:
+                                r = requests.delete(url, headers=headers, verify=False)
+                                status_code = r.status_code
+                                if status_code == 429:
+                                    print("Rate limit reached. Waiting 60 seconds before continuing...")
+                                    time.sleep(61)
+                                    r = requests.delete(url, headers=headers, verify=False)
+                                    status_code = r.status_code
+                                    if status_code == 200:
+                                        print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                                    else:
+                                        print(f'\n{d["name"]} failed to be removed! Status code: {status_code}\n')
+                                elif status_code == 200:
+                                    print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                                else:
+                                    print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
+
+                            except requests.exceptions.HTTPError as err:
+                                print (f'Error in connection --> {traceback.format_exc()}')
+
                         else:
                             print(f'\n{d["name"]} failed to be removed! Status code: {status_code}\n')
                     elif status_code == 200:
                         print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                    elif status_code == 401:
+                        print("Token expired, renewing...")
+                        results = access_token(server,headers,username,password)
+                        headers['X-auth-access-token']=results[0]
+
+                        try:
+                            r = requests.delete(url, headers=headers, verify=False)
+                            status_code = r.status_code
+                            if status_code == 429:
+                                print("Rate limit reached. Waiting 60 seconds before continuing...")
+                                time.sleep(61)
+                                r = requests.delete(url, headers=headers, verify=False)
+                                status_code = r.status_code
+                                if status_code == 200:
+                                    print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                                else:
+                                    print(f'\n{d["name"]} failed to be removed! Status code: {status_code}\n')
+                            elif status_code == 200:
+                                print(f'\n{d["name"]} has been removed. {count} of {del_length}. Status code: {status_code}')
+                            else:
+                                print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
+
+                        except requests.exceptions.HTTPError as err:
+                            print (f'Error in connection --> {traceback.format_exc()}')
                     else:
                         print(f'\n{d["name"]} failed to be removed! {count} of {del_length}. Status code: {status_code}')
 
@@ -1752,16 +1849,6 @@ def delete_ftds_from_fmc(server,headers,api_uuid):
     else:
         print("\nNothing to delete. Closing...")
 
-
-#items = get_items('https://u32c01p10-vrouter.cisco.com:17501/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/policy/ftds2svpns',headers)
-#
-#
-#for i in items:
-#    try:
-#        url = i['links']['self']
-#        r = requests.delete(url,headers=headers,verify=False)
-#    except requests.exceptions.HTTPError as err:
-#        print (f'Error in connection --> {traceback.format_exc()}')
 
 #
 #
@@ -2223,7 +2310,7 @@ if __name__ == "__main__":
             else:
                 api_uuid = domains[0]['uuid']
 
-            delete_ftds_from_fmc(server,headers,api_uuid)
+            delete_ftds_from_fmc(server,headers,username,password,api_uuid)
 
         elif script == '13':
             ftd_manager_edit()
