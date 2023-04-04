@@ -325,6 +325,7 @@ def select(opt,L):
 # Collects and returns items from all pages
 def get_items(url,headers):
     try:
+        print(f'COLLECTING PAGE... {url}')
         # REST call with SSL verification turned off
         r = requests.get(url, headers=headers, verify=False)
         status_code = r.status_code

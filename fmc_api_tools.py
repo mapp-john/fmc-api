@@ -1627,7 +1627,7 @@ def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
 ***********************************************************************************************
 ''')
     print('Collecting all devices and VPN policies...')
-    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/devices/devicerecords?expanded=true&limit=1000'
     devices = get_items(url,headers)
 
     # Restructure device data
@@ -1640,7 +1640,7 @@ def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
         } for d in devices
     }
 
-    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/ftds2svpns?expanded=true'
+    url = f'{server}/api/fmc_config/v1/domain/{api_uuid}/policy/ftds2svpns?expanded=true&limit=1000'
     s2svpns = get_items(url,headers)
 
     # Restructure vpn data
