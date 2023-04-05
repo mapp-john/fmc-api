@@ -1662,6 +1662,8 @@ def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
     # Run search in While loop to be able to re-search
     del_devs = None
     while not del_devs:
+        # Printing \n to give space between API calls and input request
+        print('\n')
         del_devs = {}
 
         search_terms = []
@@ -1685,7 +1687,12 @@ def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
             # Match on Model type
             if any(i.lower() in d['model'].lower() for i in search_terms) and (id not in del_devs):
                 del_devs[id] = d
-        print (f'''
+
+        if len(del_devs) == 0:
+            print('\nNo search results, re-enter search strings...')
+            del_devs = None
+        else:
+            print (f'''
 ***********************************************************************************************
 *                                                                                             *
 *                                 FTD Search Results                                          *
@@ -1693,22 +1700,22 @@ def delete_ftds_from_fmc(server,headers,username,password,api_uuid):
 *           NAME          ,                 UUID                ,           Model             *
 *_____________________________________________________________________________________________*''')
 
-        print('* '+'\n* '.join([f'{d["name"]}, {d["id"]}, {d["model"]}' for id,d in del_devs.items()]))
-        print('''***********************************************************************************************\n''')
+            print('* '+'\n* '.join([f'{d["name"]}, {d["id"]}, {d["model"]}' for id,d in del_devs.items()]))
+            print('''***********************************************************************************************\n''')
 
-        delete = input('Do you wish to delete the above devices? [y/N]: ').lower()
-        if delete in ['y','ye','yes']:
-            break
-        elif delete in ['n','no','']:
-            search = input('Do you wish to re-enter search strings? [y/N]').lower()
-            if search in ['y','ye','yes']:
-                del_devs = None
-            else:
-                del_devs = []
+            delete = input('Do you wish to delete the above devices? [y/N]: ').lower()
+            if delete in ['y','ye','yes']:
                 break
-        else:
-            print('Invalid entry, re-enter search strings...')
-            del_devs = None
+            elif delete in ['n','no','']:
+                search = input('Do you wish to re-enter search strings? [y/N]').lower()
+                if search in ['y','ye','yes']:
+                    del_devs = None
+                else:
+                    del_devs = {}
+                    break
+            else:
+                print('Invalid entry, re-enter search strings...')
+                del_devs = None
     del_length = len(del_devs)
     count = 0
 
