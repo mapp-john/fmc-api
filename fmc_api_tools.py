@@ -651,7 +651,6 @@ def get_inventory(server,headers,api_uuid):
         for item in ha_data:
             temp_dict = {}
             temp_dict['name']= item['name']
-            temp_dict['accessPolicy'] = item['accessPolicy']['name']
             temp_dict['primary'] = get_device_details(item['primary']['id'],devicelist_data)
             temp_dict['secondary'] = get_device_details(item['secondary']['id'],devicelist_data)
             inventory['deviceHAPairs'].append(temp_dict)
