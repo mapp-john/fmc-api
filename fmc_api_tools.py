@@ -838,10 +838,7 @@ def get_inventory(server,headers,api_uuid):
                                                                         ]['type']}: {
                                                                     item['primary'
                                                                         ]['containerDetails'
-                                                                        ]['name']}; {
-                                                                    item['primary'
-                                                                        ]['containerDetails'
-                                                                        ]['role']}"""
+                                                                        ]['name']}"""
                     if 'inventoryData' in item['primary']: chassis_inv = '; '.join([f'''{k}: {
                                                                                 v}''' for k,v in item['primary'
                                                                                 ]['inventoryData'
@@ -895,10 +892,7 @@ def get_inventory(server,headers,api_uuid):
                                                                         ]['type']}: {
                                                                     item['secondary'
                                                                         ]['containerDetails'
-                                                                        ]['name']}; {
-                                                                    item['secondary'
-                                                                        ]['containerDetails'
-                                                                        ]['role']}"""
+                                                                        ]['name']}"""
                     if 'inventoryData' in item['secondary']: chassis_inv = '; '.join([f'''{k}: {
                                                                                 v}''' for k,v in item['secondary'
                                                                                 ]['inventoryData'
@@ -950,9 +944,7 @@ def get_inventory(server,headers,api_uuid):
                     if 'containerDetails' in item: container = f"""{item['containerDetails'
                                                                         ]['type']}: {
                                                                     item['containerDetails'
-                                                                        ]['name']}; {
-                                                                    item['containerDetails'
-                                                                        ]['role']}"""
+                                                                        ]['name']}"""
                     if 'inventoryData' in item: chassis_inv = '; '.join([f'''{k}: {
                                                                     v}''' for k,v in item['inventoryData'
                                                                     ].items()])
