@@ -843,7 +843,7 @@ def get_inventory(server,headers,api_uuid):
                                                                         ]['containerDetails'
                                                                         ]['role']}"""
                     if 'inventoryData' in item['primary']: chassis_inv = '; '.join([f'''{k}: {
-                                                                           https://10.122.112.169/     v}''' for k,v in item['primary'
+                                                                                v}''' for k,v in item['primary'
                                                                                 ]['inventoryData'
                                                                                 ].items()])
                     if 'domain' in item['primary']: domain = item['primary']['domain'
